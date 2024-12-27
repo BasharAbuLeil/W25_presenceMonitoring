@@ -1,7 +1,9 @@
 #include "sd_functions.h"
 #include "credentials.h"
 
+
 //Define Global Strings
+
 char* ssid = nullptr;
 char* password = nullptr;
 
@@ -94,4 +96,67 @@ void saveWiFiCredentials(const char* path, const char* _ssid, const char* _passw
     } else {
         Serial.println("Error creating or opening file");
     }
+}
+
+
+
+
+void readFireBaseCredentials(FirebaseData &fbdo,FirebaseAuth& auth,FirebaseConfig& config,String &projectId,String& dataBaseUrl){
+  //config.api_key = API_KEY;
+  // config.project_id = FIREBASE_PROJECT_ID; // 'project_id' is not a member in older library versions
+
+
+  
+  File myFile = SD.open("/fireBaseCreds.txt");
+  const int numLines=5;
+  if (myFile) {
+    Serial.println("Reading file:");
+
+    // Read and print the specified number of lines (t)
+    int linesRead = 0;
+    while (myFile.available() && linesRead < numLines) {
+      String line = readLine(myFile);  // Function to read a single line without \n
+      Serial.println(line);      // Print the line without \n
+      if(linesRead==0){
+        projectId=line;
+      }
+      else if(linesRead==1){
+        config.api_key=line;
+      }
+      else if(linesRead==2){
+        dataBaseUrl=line;
+      }
+      else if(linesRead==3){
+        auth.user.email = line;
+      }
+      else {
+        auth.user.password = line;
+      }
+      linesRead++;
+    }
+
+    myFile.close();  // Close the file
+  } else {
+    Serial.println("Error opening the file");
+  }
+}
+
+
+String readLine(File& myFile) {
+  String line = "";
+
+  // Read characters until a newline or the end of the file
+  while (myFile.available()) {
+    char ch = myFile.read();  // Read the next byte
+
+    // If the byte is a newline, stop reading
+    if (ch == '\n') {
+      break;  // Exit the loop when newline is encountered
+    }
+
+    // Otherwise, append the character to the line string
+    line += ch;
+  }
+
+  return line;  // Return the line without the newline character
 }

@@ -1,89 +1,85 @@
-// /**
-//  * Based on code created by K. Suwatchai (Mobizt)
-//  * https://github.com/mobizt/Firebase-ESP-Client/blob/main/examples/RTDB/DataChangesListener/Callback/Callback.ino
-//  */
+#include "fire_store.h"
+#include <addons/TokenHelper.h>
+#include <addons/RTDBHelper.h>
+#include "display.h" // Assuming your display.h is correctly set up
+#include "SD_functions.h"
 
-// #if defined(ESP32)
-// #include <WiFi.h>
-// #elif defined(ESP8266)
-// #include <ESP8266WiFi.h>
-// #endif
+extern Adafruit_SSD1306 display; // Assuming your display object is declared in your main .ino
 
-// #include "fire_store.h"
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+String projectId;
+String dataBaseUrl;
 
-// // #include <~/Documents/Arduino/libraries/Firebase_ESP_Client.h>
+void establishFireBaseConnection() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Connecting to");
+  display.println("Firebase...");
+  display.display();
 
-// // Provide the token generation process info.
-// // #include <addons/TokenHelper.h>
+  // config.api_key = API_KEY;
+  // // config.project_id = FIREBASE_PROJECT_ID; // 'project_id' is not a member in older library versions
 
-// // Provide the RTDB payload printing info and other helper functions.
-// // #include <addons/RTDBHelper.h>
+  // auth.user.email = USER_EMAIL;
+  // auth.user.password = USER_PASSWORD;
 
-// // Define Firebase Data object
-// FirebaseData stream;
-// FirebaseData fbdo;
+  // config.token_status_callback = tokenStatusCallback;
+  readFireBaseCredentials(fbdo,auth,config,projectId,dataBaseUrl);
+  config.token_status_callback = tokenStatusCallback;
 
-// FirebaseAuth auth;
-// FirebaseConfig config;
+  Firebase.begin(&config, &auth);
 
-// unsigned long sendDataPrevMillis = 0;
+  if (Firebase.ready()) {
+    Serial.println("Firebase connection established.");
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Firebase Conn");
+    display.println("Success!");
+    display.display();
+    delay(2000); // Keep the success message for a short time
+  } else {
+    Serial.println("Firebase connection failed!");
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Firebase Conn");
+    display.println("Failed!");
+    display.display();
+    while (true); // Stop execution if Firebase connection fails
+  }
+}
 
-// int count = 0;
+void addTestUserToFirestore() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Adding User...");
+  display.display();
 
-// volatile bool dataChanged = false;
+  String collectionPath = "users";
+  String documentPath = collectionPath + "/9999999";
+  String jsonData = "{}";
 
-// void streamCallback(FirebaseStream data)
-// {
-//   Serial.printf("sream path, %s\nevent path, %s\ndata type, %s\nevent type, %s\n\n",
-//                 data.streamPath().c_str(),
-//                 data.dataPath().c_str(),
-//                 data.dataType().c_str(),
-//                 data.eventType().c_str());
-//   printResult(data); // see addons/RTDBHelper.h
-//   Serial.println();
+  Serial.println("Adding test user to Firestore...");
 
-//   // This is the size of stream payload received (current and max value)
-//   // Max payload size is the payload size under the stream path since the stream connected
-//   // and read once and will not update until stream reconnection takes place.
-//   // This max value will be zero as no payload received in case of ESP8266 which
-//   // BearSSL reserved Rx buffer size is less than the actual stream payload.
-//   Serial.printf("Received stream payload size: %d (Max. %d)\n\n", data.payloadLength(), data.maxPayloadLength());
-
-//   // Due to limited of stack memory, do not perform any task that used large memory here especially starting connect to server.
-//   // Just set this flag and check it status later.
-//   dataChanged = true;
-// }
-
-// void streamTimeoutCallback(bool timeout)
-// {
-//   if (timeout)
-//     Serial.println("stream timed out, resuming...\n");
-
-//   if (!stream.httpConnected())
-//     Serial.printf("error code: %d, reason: %s\n\n", stream.httpCode(), stream.errorReason().c_str());
-// }
-// void establishFireBaseConnection(){
-//      /* Assign the api key (required) */
-//   config.api_key = API_KEY;
-
-//   /* Assign the user sign in credentials */
-//   auth.user.email = USER_EMAIL;
-//   auth.user.password = USER_PASSWORD;
-
-//   /* Assign the RTDB URL (required) */
-//   config.database_url = DATABASE_URL;
-
-//   /* Assign the callback function for the long running token generation task */
-//   config.token_status_callback = tokenStatusCallback; // see addons/TokenHelper.h
-
-//   // Or use legacy authenticate method
-//   // config.database_url = DATABASE_URL;
-//   // config.signer.tokens.legacy_token = "<database secret>";
-
-//   // To connect without auth in Test Mode, see Authentications/TestMode/TestMode.ino
-
-//   Firebase.begin(&config, &auth);
-
-//   Firebase.reconnectWiFi(true);
-// }
-    
+  // Added the "databaseId" parameter, which is typically "(default)" for Firestore
+  if (Firebase.Firestore.createDocument(&fbdo, projectId, "(default)", documentPath, jsonData)) {
+    Serial.println("Test user added successfully!");
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("User Add");
+    display.println("Success!");
+    display.display();
+    delay(2000); // Keep the success message for a short time
+  } else {
+    Serial.print("Error adding test user: ");
+    Serial.println(fbdo.errorReason());
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("User Add");
+    display.println("Failed!");
+    display.println(fbdo.errorReason());
+    display.display();
+    while (true); // Stop execution if adding user fails
+  }
+}
