@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'session_data.dart'; // Import the session data page
-import 'all_treatment_sessions.dart'; // Import the all_treatment_sessions page
-import 'global_history.dart'; // Import the global_history page
+import 'package:provider/provider.dart';
+import 'main.dart';
+import 'all_treatment_sessions.dart';
+import 'global_history.dart';
 
 class IDLoginPage extends StatefulWidget {
   const IDLoginPage({Key? key}) : super(key: key);
@@ -13,22 +14,17 @@ class IDLoginPage extends StatefulWidget {
 
 class _IDLoginPageState extends State<IDLoginPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  // Controllers for ID search
   final TextEditingController _idController = TextEditingController();
-
-  // Separate controllers for year, month, day
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _monthController = TextEditingController();
   final TextEditingController _dayController = TextEditingController();
-
-  late final int _currentYear;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentYear = DateTime.now().year;
-  }
+  final TextEditingController _startYearController = TextEditingController();
+  final TextEditingController _startMonthController = TextEditingController();
+  final TextEditingController _startDayController = TextEditingController();
+  final TextEditingController _endYearController = TextEditingController();
+  final TextEditingController _endMonthController = TextEditingController();
+  final TextEditingController _endDayController = TextEditingController();
+  bool _useRange = false;
 
   @override
   void dispose() {
@@ -36,116 +32,143 @@ class _IDLoginPageState extends State<IDLoginPage> {
     _yearController.dispose();
     _monthController.dispose();
     _dayController.dispose();
+    _startYearController.dispose();
+    _startMonthController.dispose();
+    _startDayController.dispose();
+    _endYearController.dispose();
+    _endMonthController.dispose();
+    _endDayController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    const Color kOrangeColor = Color(0xFFFF6E40);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: colorScheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.grey[900],
+        backgroundColor: colorScheme.surface,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'ID & Date Lookup',
-          style: TextStyle(color: Colors.white),
+          style: textTheme.headlineSmall?.copyWith(color: colorScheme.onSurface),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ------------------- ID Search Section -------------------
-              TextField(
-                controller: _idController,
-                style: const TextStyle(color: Colors.white),
-                keyboardType: TextInputType.text,
-                decoration: InputDecoration(
-                  labelText: 'Enter ID',
-                  labelStyle: const TextStyle(color: Colors.white70),
-                  filled: true,
-                  fillColor: Colors.grey[850],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kOrangeColor),
-                  ),
-                  prefixIcon: const Icon(Icons.perm_identity, color: Colors.white70),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              children: [
+                // ID Search Section
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: _idController,
+                      style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Enter ID (6 digits)',
+                        labelStyle: TextStyle(
+                          color: colorScheme.onSurface.withOpacity(0.7),
+                          fontSize: 14,
+                        ),
+                        filled: true,
+                        fillColor: colorScheme.surfaceVariant,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.perm_identity,
+                          size: 20,
+                          color: colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: _handleIDSearch,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentColor,
+                        foregroundColor: colorScheme.onSecondary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Search ID',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 16.0),
 
-              ElevatedButton(
-                onPressed: _handleIDSearch,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kOrangeColor,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 24),
+
+                // Date Toggle
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Switch(
+                        value: _useRange,
+                        onChanged: (val) => setState(() => _useRange = val),
+                        activeColor: AppTheme.accentColor,
+                      ),
+                      Text(
+                        _useRange ? 'Searching by Date Range' : 'Searching by Single Date',
+                        style: TextStyle(
+                          color: colorScheme.onSurface.withOpacity(0.7),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Text('Search ID'),
-              ),
 
-              const SizedBox(height: 30.0),
+                const SizedBox(height: 16),
 
-              // ------------------- Date History Section -------------------
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildDateField(
-                      controller: _yearController,
-                      hintText: 'YYYY',
-                      icon: Icons.calendar_month,
-                      kOrangeColor: kOrangeColor,
+                // Date Fields
+                if (!_useRange)
+                  _buildSingleDateFields(colorScheme)
+                else
+                  _buildRangeDateFields(colorScheme),
+
+                const SizedBox(height: 16),
+
+                // Show History Button
+                ElevatedButton(
+                  onPressed: _handleDateHistory,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.accentColor,
+                    foregroundColor: colorScheme.onSecondary,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    minimumSize: const Size.fromHeight(40),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildDateField(
-                      controller: _monthController,
-                      hintText: 'MM',
-                      icon: Icons.calendar_today,
-                      kOrangeColor: kOrangeColor,
-                    ),
+                  child: Text(
+                    _useRange ? 'Show Range History' : 'Show History',
+                    style: const TextStyle(fontSize: 14),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildDateField(
-                      controller: _dayController,
-                      hintText: 'DD',
-                      icon: Icons.today,
-                      kOrangeColor: kOrangeColor,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16.0),
-
-              ElevatedButton(
-                onPressed: _handleDateHistory,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kOrangeColor,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
                 ),
-                child: const Text('Show History'),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -156,29 +179,157 @@ class _IDLoginPageState extends State<IDLoginPage> {
     required TextEditingController controller,
     required String hintText,
     required IconData icon,
-    required Color kOrangeColor,
+    required ColorScheme colorScheme,
   }) {
     return TextField(
       controller: controller,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
       keyboardType: TextInputType.number,
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.white54),
+        hintStyle: TextStyle(
+          color: colorScheme.onSurface.withOpacity(0.5),
+          fontSize: 14,
+        ),
         filled: true,
-        fillColor: Colors.grey[850],
+        fillColor: colorScheme.surfaceVariant,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: kOrangeColor),
+        prefixIcon: Icon(
+          icon,
+          color: colorScheme.onSurface.withOpacity(0.7),
+          size: 20,
         ),
-        prefixIcon: Icon(icon, color: Colors.white70),
       ),
     );
   }
+
+  Widget _buildSingleDateFields(ColorScheme colorScheme) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildDateField(
+            controller: _yearController,
+            hintText: 'YYYY',
+            icon: Icons.calendar_month,
+            colorScheme: colorScheme,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildDateField(
+            controller: _monthController,
+            hintText: 'MM',
+            icon: Icons.calendar_today,
+            colorScheme: colorScheme,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildDateField(
+            controller: _dayController,
+            hintText: 'DD',
+            icon: Icons.today,
+            colorScheme: colorScheme,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRangeDateFields(ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Start Date',
+          style: TextStyle(
+            color: colorScheme.onSurface.withOpacity(0.7),
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _buildDateField(
+                controller: _startYearController,
+                hintText: 'YYYY',
+                icon: Icons.calendar_month,
+                colorScheme: colorScheme,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildDateField(
+                controller: _startMonthController,
+                hintText: 'MM',
+                icon: Icons.calendar_today,
+                colorScheme: colorScheme,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildDateField(
+                controller: _startDayController,
+                hintText: 'DD',
+                icon: Icons.today,
+                colorScheme: colorScheme,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'End Date',
+          style: TextStyle(
+            color: colorScheme.onSurface.withOpacity(0.7),
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _buildDateField(
+                controller: _endYearController,
+                hintText: 'YYYY',
+                icon: Icons.calendar_month,
+                colorScheme: colorScheme,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildDateField(
+                controller: _endMonthController,
+                hintText: 'MM',
+                icon: Icons.calendar_today,
+                colorScheme: colorScheme,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildDateField(
+                controller: _endDayController,
+                hintText: 'DD',
+                icon: Icons.today,
+                colorScheme: colorScheme,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+  // --------------------------------------------------------------------------
+  //  Handlers
+  // --------------------------------------------------------------------------
 
   Future<void> _handleIDSearch() async {
     final enteredID = _idController.text.trim();
@@ -188,119 +339,199 @@ class _IDLoginPageState extends State<IDLoginPage> {
     }
 
     try {
-      final DocumentSnapshot userDoc =
-      await _firestore.collection('users').doc(enteredID).get();
-
-      if (userDoc.exists) {
-        // Navigate to AllTreatmentSessions page
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AllTreatmentSessions(userID: enteredID), // Pass the userID
-          ),
-        );
-      } else {
-        _showErrorDialog('ID "$enteredID" not found in Firestore.');
+      final docSnap = await _firestore.collection('users').doc(enteredID).get();
+      if (!docSnap.exists) {
+        _showErrorDialog('No user found with ID: $enteredID');
+        return;
       }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AllTreatmentSessionsPage(userID: enteredID),
+        ),
+      );
     } catch (e) {
       _showErrorDialog('Error searching ID: $e');
     }
   }
 
   Future<void> _handleDateHistory() async {
-    final yearStr = _yearController.text.trim();
-    final monthStr = _monthController.text.trim();
-    final dayStr = _dayController.text.trim();
+    if (!_useRange) {
+      // SINGLE DATE
+      final dt = _validateSingleDate();
+      if (dt == null) return;
 
-    if (yearStr.isEmpty || monthStr.isEmpty || dayStr.isEmpty) {
-      _showErrorDialog('Please enter year, month, and day.');
-      return;
-    }
+      // Expand single dt -> dtStart..dtEnd
+      final dtStart = DateTime(dt.year, dt.month, dt.day, 0, 0, 0);
+      final dtEnd   = DateTime(dt.year, dt.month, dt.day, 23, 59, 59);
 
-    int? year = int.tryParse(yearStr);
-    int? month = int.tryParse(monthStr);
-    int? day = int.tryParse(dayStr);
+      try {
+        // Query to see if any docs exist for that date
+        final querySnap = await _firestore
+            .collection('sessions')
+            .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(dtStart))
+            .where('date', isLessThanOrEqualTo: Timestamp.fromDate(dtEnd))
+            .get();
 
-    if (year == null || month == null || day == null) {
-      _showErrorDialog('Year, month, and day must be numbers.');
-      return;
-    }
+        if (querySnap.docs.isEmpty) {
+          _showErrorDialog('No data found for ${_formatDate(dt)}');
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => GlobalHistoryPage(
+                startDate: dtStart,
+                endDate: dtEnd,
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        _showErrorDialog('Error searching date: $e');
+      }
+    } else {
+      // RANGE
+      final startDt = _validateRangeDate(
+        _startYearController.text.trim(),
+        _startMonthController.text.trim(),
+        _startDayController.text.trim(),
+        isStart: true,
+      );
+      if (startDt == null) return;
 
-    DateTime? dateObj;
-    try {
-      dateObj = DateTime(year, month, day);
-      if (dateObj.isAfter(DateTime.now())) {
-        _showErrorDialog('Date cannot be in the future.');
+      final endDt = _validateRangeDate(
+        _endYearController.text.trim(),
+        _endMonthController.text.trim(),
+        _endDayController.text.trim(),
+        isStart: false,
+      );
+      if (endDt == null) return;
+
+      if (endDt.isBefore(startDt)) {
+        _showErrorDialog('End date cannot be before the start date.');
         return;
       }
-    } catch (_) {
-      _showErrorDialog('Invalid date.');
-      return;
-    }
 
-    final dateString = '${year.toString().padLeft(4, '0')}-'
-        '${month.toString().padLeft(2, '0')}-'
-        '${day.toString().padLeft(2, '0')}';
+      try {
+        final querySnap = await _firestore
+            .collection('sessions')
+            .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDt))
+            .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDt))
+            .get();
 
-    try {
-      final DocumentSnapshot dateDoc =
-      await _firestore.collection('dates').doc(dateString).get();
-
-      if (dateDoc.exists) { // Crucial check for successful date search
-        // Navigate to GlobalHistoryPage, passing the dateString
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => GlobalHistoryPage(dateString: dateString),
-          ),
-        );
-      } else {
-        _showErrorDialog('No records found for $dateString.');
+        if (querySnap.docs.isEmpty) {
+          _showErrorDialog(
+            'No data found for the range '
+                '${_formatDate(startDt)} - ${_formatDate(endDt)}',
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => GlobalHistoryPage(
+                startDate: startDt,
+                endDate: endDt,
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        _showErrorDialog('Error searching date range: $e');
       }
-    } catch (e) {
-      _showErrorDialog('Error retrieving date history: $e');
     }
   }
 
+  DateTime? _validateSingleDate() {
+    final y = _yearController.text.trim();
+    final m = _monthController.text.trim();
+    final d = _dayController.text.trim();
+    if (y.isEmpty || m.isEmpty || d.isEmpty) {
+      _showErrorDialog('Please enter year, month, and day.');
+      return null;
+    }
+    final year = int.tryParse(y);
+    final month = int.tryParse(m);
+    final day = int.tryParse(d);
+    if (year == null || month == null || day == null) {
+      _showErrorDialog('Year, month, and day must be valid integers.');
+      return null;
+    }
+    try {
+      final dt = DateTime(year, month, day);
+      if (dt.isAfter(DateTime.now())) {
+        _showErrorDialog('Date cannot be in the future.');
+        return null;
+      }
+      return dt;
+    } catch (_) {
+      _showErrorDialog('Invalid date. Please check values again.');
+      return null;
+    }
+  }
+
+  DateTime? _validateRangeDate(String y, String m, String d, {required bool isStart}) {
+    if (y.isEmpty || m.isEmpty || d.isEmpty) {
+      _showErrorDialog(
+        isStart ? 'Please enter a valid start date.' : 'Please enter a valid end date.',
+      );
+      return null;
+    }
+    final year = int.tryParse(y);
+    final month = int.tryParse(m);
+    final day = int.tryParse(d);
+    if (year == null || month == null || day == null) {
+      _showErrorDialog(
+        isStart
+            ? 'Start date must be valid integers.'
+            : 'End date must be valid integers.',
+      );
+      return null;
+    }
+    try {
+      final dt = DateTime(year, month, day);
+      if (dt.isAfter(DateTime.now())) {
+        _showErrorDialog('Date cannot be in the future.');
+        return null;
+      }
+      return dt;
+    } catch (_) {
+      _showErrorDialog(isStart ? 'Invalid start date.' : 'Invalid end date.');
+      return null;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  //  Dialog Helpers
+  // --------------------------------------------------------------------------
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey[800],
-        title: const Text('Error', style: TextStyle(color: Colors.white)),
-        content: Text(message, style: const TextStyle(color: Colors.white)),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          'Error',
+          style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK', style: TextStyle(color: Colors.orangeAccent)),
+            child: Text('OK', style: TextStyle(color: AppTheme.accentColor)),
           ),
         ],
       ),
     );
   }
 
-  void _showDateDataDialog(String date, Map<String, dynamic> data) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey[800],
-        title: Text(
-          'History for $date',
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: SingleChildScrollView(
-          child: Text(
-            data.toString(),
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK', style: TextStyle(color: Colors.orangeAccent)),
-          ),
-        ],
-      ),
-    );
+  // Formats a DateTime as YYYY-MM-DD
+  String _formatDate(DateTime dt) {
+    final y = dt.year.toString().padLeft(4, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
   }
 }
