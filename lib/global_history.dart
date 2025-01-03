@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'session_data.dart'; // The page to show individual session details
+import 'package:provider/provider.dart';
+import 'main.dart';
+import 'session_data.dart';
+import 'package:intl/intl.dart';
 
 class GlobalHistoryPage extends StatefulWidget {
-  final String dateString; // e.g., "2025-07-15"
+  final DateTime startDate;
+  final DateTime endDate;
 
-  const GlobalHistoryPage({Key? key, required this.dateString}) : super(key: key);
+  const GlobalHistoryPage({
+    Key? key,
+    required this.startDate,
+    required this.endDate,
+  }) : super(key: key);
 
   @override
   _GlobalHistoryPageState createState() => _GlobalHistoryPageState();
@@ -14,141 +22,181 @@ class GlobalHistoryPage extends StatefulWidget {
 class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  late DateTime _expandedStart;
+  late DateTime _expandedEnd;
+  bool get _isSingleDay => widget.startDate.year == widget.endDate.year
+      && widget.startDate.month == widget.endDate.month
+      && widget.startDate.day == widget.endDate.day;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isSingleDay) {
+      _expandedStart = DateTime(widget.startDate.year, widget.startDate.month, widget.startDate.day, 0, 0, 0);
+      _expandedEnd = DateTime(widget.startDate.year, widget.startDate.month, widget.startDate.day, 23, 59, 59);
+    } else {
+      _expandedStart = widget.startDate;
+      _expandedEnd = widget.endDate;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final startTs = Timestamp.fromDate(_expandedStart);
+    final endTs = Timestamp.fromDate(_expandedEnd);
+
     return Scaffold(
-      backgroundColor: Colors.black, // Dark background
+      backgroundColor: colorScheme.background,
       appBar: AppBar(
-        title: const Text('Global History'),
-        backgroundColor: Colors.grey[900],
+        title: Text(
+          'Treatment History',
+          style: Theme.of(context).appBarTheme.titleTextStyle
+              ?? textTheme.titleLarge?.copyWith(color: colorScheme.onBackground),
+        ),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // -- 1) Header with the date --
-            Row(
-              children: [
-                Text(
-                  'Date: ${widget.dateString}',
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+            Card(
+              elevation: 2,
+              color: colorScheme.surfaceVariant,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                child: Column(
+                  children: [
+                    Text(
+                      _isSingleDay ? 'Selected Date' : 'Date Range',
+                      style: textTheme.titleMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _isSingleDay
+                          ? _formatDate(widget.startDate)
+                          : '${_formatDate(widget.startDate)} - ${_formatDate(widget.endDate)}',
+                      style: textTheme.headlineMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: 16),
-
-            // -- 2) Table of sessions for this date --
+            const SizedBox(height: 24),
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore
-                    .collection('dates')
-                    .doc(widget.dateString)
-                    .collection('sessions')
-                // If you store all sessions under "dates/{dateString}/sessions"
-                // you can also .orderBy('time') if needed:
-                //.orderBy('time')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return const Text(
-                      'Error loading sessions',
-                      style: TextStyle(color: Colors.red),
-                    );
-                  }
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final sessionDocs = snapshot.data!.docs;
-
-                  // Build DataTable
-                  return DataTable(
-                    headingRowColor: MaterialStateColor.resolveWith(
-                          (states) => Colors.grey[900]!,
-                    ),
-                    dataRowColor: MaterialStateColor.resolveWith(
-                          (states) => Colors.grey[850]!,
-                    ),
-                    columnSpacing: 16,
-                    columns: const [
-                      DataColumn(
-                        label: Text('Time', style: TextStyle(color: Colors.white)),
-                      ),
-                      DataColumn(
-                        label: Text('ID', style: TextStyle(color: Colors.white)),
-                      ),
-                      DataColumn(
-                        label: Text('Duration(min)', style: TextStyle(color: Colors.white)),
-                      ),
-                      DataColumn(
-                        label: Text('Avg Activity(%)', style: TextStyle(color: Colors.white)),
-                      ),
-                      DataColumn(
-                        label: Text('Color', style: TextStyle(color: Colors.white)),
-                      ),
-                      DataColumn(
-                        label: Text('Intensity', style: TextStyle(color: Colors.white)),
-                      ),
-                      DataColumn(
-                        label: Text('Relaxed(y/n)', style: TextStyle(color: Colors.white)),
-                      ),
-                      DataColumn(
-                        label: Text('View', style: TextStyle(color: Colors.white)),
-                      ),
-                    ],
-                    rows: sessionDocs.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-
-                      // Firestore fields
-                      final time = data['time'] ?? 'N/A';
-                      final userID = data['userID'] ?? 'N/A';
-                      final duration = data['duration'] ?? 0;
-                      final avgActivity = data['avgActivity'] ?? 0;
-                      final color = data['color'] ?? 'N/A';
-                      final intensity = data['intensity'] ?? 'N/A';
-                      final bool relaxed = data['relaxed'] ?? false;
-                      final relaxedStr = relaxed ? 'Y' : 'N';
-
-                      return DataRow(
-                        cells: [
-                          DataCell(Text('$time', style: const TextStyle(color: Colors.white))),
-                          DataCell(Text('$userID', style: const TextStyle(color: Colors.white))),
-                          DataCell(Text('$duration', style: const TextStyle(color: Colors.white))),
-                          DataCell(Text('$avgActivity', style: const TextStyle(color: Colors.white))),
-                          DataCell(Text('$color', style: const TextStyle(color: Colors.white))),
-                          DataCell(Text('$intensity', style: const TextStyle(color: Colors.white))),
-                          DataCell(Text(relaxedStr, style: const TextStyle(color: Colors.white))),
-                          DataCell(
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orangeAccent,
-                              ),
-                              onPressed: () {
-                                // Navigate to SessionDataPage with date/time/id
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => SessionDataPage(
-                                      userID: userID,
-                                      date: widget.dateString,
-                                      time: time,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: const Text('View'),
-                            ),
-                          ),
-                        ],
+              child: Card(
+                elevation: 1,
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _firestore
+                      .collection('sessions')
+                      .where('date', isGreaterThanOrEqualTo: startTs)
+                      .where('date', isLessThanOrEqualTo: endTs)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Error loading sessions',
+                          style: textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+                        ),
                       );
-                    }).toList(),
-                  );
-                },
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    final sessionDocs = snapshot.data!.docs;
+
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          headingRowColor: MaterialStateColor.resolveWith(
+                                (states) => colorScheme.surfaceVariant.withOpacity(0.7),
+                          ),
+                          dataRowColor: MaterialStateColor.resolveWith(
+                                (states) => colorScheme.surface,
+                          ),
+                          columnSpacing: 16,
+                          headingTextStyle: textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          dataTextStyle: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurface,
+                          ),
+                          columns: [
+                            DataColumn(label: Text('Date')),
+                            DataColumn(label: Text('Time')),
+                            DataColumn(label: Text('ID')),
+                            DataColumn(label: Text('Duration')),
+                            DataColumn(label: Text('Activity')),
+                            DataColumn(label: Text('Color')),
+                            DataColumn(label: Text('Intensity')),
+                            DataColumn(label: Text('Relaxed')),
+                            DataColumn(label: Text('View')),
+                          ],
+                          rows: sessionDocs.map((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final Timestamp? dateTs = data['date'];
+
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(_formatTimestamp(dateTs))),
+                                DataCell(Text('${data['time'] ?? 'N/A'}')),
+                                DataCell(Text('${data['userID'] ?? 'N/A'}')),
+                                DataCell(Text('${data['duration'] ?? 0} min')),
+                                DataCell(Text('${data['avgActivity'] ?? 0}%')),
+                                DataCell(Text('${data['color'] ?? 'N/A'}')),
+                                DataCell(Text('${data['intensity'] ?? 'N/A'}')),
+                                DataCell(Text(data['relaxed'] == true ? 'Yes' : 'No')),
+                                DataCell(
+                                  FilledButton.tonal(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => SessionDataPage(
+                                            sessionDocID: doc.id,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text('View'),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _formatTimestamp(Timestamp? ts) {
+    if (ts == null) return 'N/A';
+    final date = ts.toDate();
+    return DateFormat('yyyy-MM-dd').format(date);
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('yyyy-MM-dd').format(date);
   }
 }
