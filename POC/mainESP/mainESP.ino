@@ -1,47 +1,13 @@
-/*
-#include "espNowFunctions.h"
-
-
-
-bool onGoingSession=false;
-espNow* peerCommunicator;
-
-void setup() {
-  // put your setup code here, to run once:
-  //boot sequnce if important. screen -> sd -> wifi -> fireStore.
-  peerCommunicator=new espNow;
-}
-
-void loop() {
-  peerCommunicator->initSession();
-  delay(10000);
-  peerCommunicator->haltSession();
-  delay(5000);
-}
-*/
 
 #include <WiFi.h>
 #include "espNowFunctions.h"
-// Variables for test data
-int int_value=0;
-float float_value;
-bool bool_value = true;
-//10:06:1C:86:1D:B0
-// MAC Address of responder - edit as required
+#include "display.h"
+
+extern Adafruit_SSD1306 display;
+
+
 uint8_t broadcastAddress[] = {0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
 espNow* peerCommunicator;
-// Define a data structure
-// typedef struct struct_message {
-//   char a[32];
-//   int b;
-//   float c;
-//   bool d;
-// } struct_message;
- 
-// Create a structured object
-struct_message myData;
- 
-// Peer info
 esp_now_peer_info_t peerInfo;
  
 // Callback function called when data is sent
@@ -54,6 +20,7 @@ void setup() {
   
   // Set up Serial Monitor
   Serial.begin(115200);
+  initDisplay();
   peerCommunicator=new espNow;
   esp_now_register_send_cb(OnDataSent);
   
@@ -73,6 +40,10 @@ void setup() {
 void loop() {
   delay(5000);
   peerCommunicator->initSession();
+  display.println("ongoing session.");
+  display.display();
   delay(5000);
   peerCommunicator->haltSession();
+  display.println("ongoing session.");
+  display.display();
 }
