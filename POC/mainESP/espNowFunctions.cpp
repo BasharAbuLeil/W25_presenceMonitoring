@@ -56,6 +56,10 @@ void espNow::haltSession(){
 }
 
 
+bool espNow::isOngoingSession(){
+  return m_isOngoingSession;
+};
+
 
 
 // void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status){

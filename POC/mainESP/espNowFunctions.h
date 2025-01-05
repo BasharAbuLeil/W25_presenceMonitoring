@@ -24,6 +24,7 @@ public :
   espNow();
   void initSession();
   void haltSession();
+  bool isOngoingSession();
 };
 
 
