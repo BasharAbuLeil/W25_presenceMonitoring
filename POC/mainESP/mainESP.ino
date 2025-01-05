@@ -29,18 +29,31 @@ espNow* peerCommunicator;
 esp_now_peer_info_t peerInfo;
 
 void getId(){
-  Serial.println("GetId");
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("INSERT ID:");
+  display.display();
+  delay(2000);
+  display.clearDisplay();
   std::string id="";
   int counter =0;
   while(counter<ID_LENGTH) {
     char key = keypad.getKey();
     if(key){
-      Serial.println(key);
-      id+=key;
-      counter++;
+      if(key=='D'&&counter>0){
+        id.pop_back();
+        counter--;
+      }
+      else{
+        id+=key;
+        counter++;
+      }
+      display.setCursor(0, 0);
+      display.print(id.c_str());
+      display.display();
     }
   }
-  Serial.println(id.c_str());
+  
 }
 // Callback function called when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
@@ -52,8 +65,17 @@ void setup() {
   
   // Set up Serial Monitor
   Serial.begin(115200);
+  initDisplay();
   initSd();
   getWifiData();
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  int tries=0;
+  while(WiFi.status() != WL_CONNECTED) {
+    tries++;
+    delay(1000);
+    Serial.print(".");
+  }
   Serial.println("ssid:");
   Serial.println(ssid);
   Serial.println("password");
@@ -72,9 +94,7 @@ void setup() {
   }
   //ending the esp now part 
   //wifi part
-  // WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  // initDisplay();
+  
   
   
   // Register peer
@@ -84,7 +104,7 @@ void setup() {
 void loop() {
   delay(5000);
   if(peerCommunicator->isOngoingSession()){
-    //getData from the peer.
+    
   }
   else{
     getId();
@@ -99,36 +119,3 @@ void loop() {
   // display.println("ongoing session.");
   // display.display();*/
 }
-
-
-
-/*
-#include <Keypad.h>
-
-#define ROW_NUM     4 // four rows
-#define COLUMN_NUM  4 // four columns
-
-char keys[ROW_NUM][COLUMN_NUM] = {
-  {'1', '2', '3', 'A'},
-  {'4', '5', '6', 'B'},
-  {'7', '8', '9', 'C'},
-  {'*', '0', '#', 'D'}
-};
-
-byte pin_rows[ROW_NUM]      = {12, 14, 27, 26}; // GPIOs for rows
-byte pin_column[COLUMN_NUM] = {25, 33, 32, 4};  // GPIOs for columns
-
-Keypad keypad = Keypad( makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM );
-
-void setup() {
-  Serial.begin(115200);
-}
-
-void loop() {
-  char key = keypad.getKey();
-
-  if (key) {
-    Serial.println(key);
-  }
-}
-*/
