@@ -83,7 +83,7 @@ void setup() {
   peerCommunicator=new espNow;
   esp_now_register_send_cb(OnDataSent);
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = 0;  
+  peerInfo.channel = WiFi.channel();  
   peerInfo.encrypt = false;
   
   // Add peer  
@@ -102,20 +102,21 @@ void setup() {
 }
  
 void loop() {
-  delay(5000);
+  /*delay(5000);
   if(peerCommunicator->isOngoingSession()){
     
   }
   else{
     getId();
     peerCommunicator->initSession(); 
-  }
-  /*
+  }*/
+  
   peerCommunicator->initSession();
   // display.println("ongoing session.");
   // display.display();
   delay(5000);
   peerCommunicator->haltSession();
+  delay(5000);
   // display.println("ongoing session.");
-  // display.display();*/
+  // display.display();
 }

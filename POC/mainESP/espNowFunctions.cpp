@@ -3,7 +3,7 @@
 uint8_t peerAddress[]={0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
 
 espNow::espNow():m_isOngoingSession(false),m_macAddress(peerAddress){
-  WiFi.mode(WIFI_STA);
+  // WiFi.mode(WIFI_STA);
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
