@@ -19,15 +19,26 @@ byte pin_rows[ROW_NUM]      = {12, 14, 27, 26}; // GPIOs for rows
 byte pin_column[COLUMN_NUM] = {25, 33, 32, 4};  // GPIOs for columns
 Keypad keypad = Keypad( makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM );
 
+typedef struct recieved_message {
+  int value ;
+} data_received;
+
 extern Adafruit_SSD1306 display;
 
 extern char * passwrod;
 extern char * ssid;
 bool wifiConnceted;
+int value;
 uint8_t broadcastAddress[] = {0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
 espNow* peerCommunicator;
 esp_now_peer_info_t peerInfo;
-
+data_received d1;
+void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingData, int len) {
+  memcpy(&d1, incomingData, sizeof(d1));
+  value = d1.value;
+  Serial.println("Value received");
+  Serial.println(value);
+}
 void getId(){
   display.clearDisplay();
   display.setCursor(0, 0);
@@ -82,6 +93,7 @@ void setup() {
   Serial.println(password);
   peerCommunicator=new espNow;
   esp_now_register_send_cb(OnDataSent);
+  esp_now_register_recv_cb(onDataReceive);
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
   peerInfo.channel = WiFi.channel();  
   peerInfo.encrypt = false;
@@ -114,7 +126,7 @@ void loop() {
   peerCommunicator->initSession();
   // display.println("ongoing session.");
   // display.display();
-  delay(5000);
+  delay(10000);
   peerCommunicator->haltSession();
   delay(5000);
   // display.println("ongoing session.");
