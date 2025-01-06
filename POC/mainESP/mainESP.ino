@@ -5,6 +5,7 @@
 #include "SD_functions.h"
 #include <Keypad.h>
 #include <string>
+#include "fire_store.h"
 
 #define ROW_NUM     4 // four rows
 #define COLUMN_NUM  4 // four columns
@@ -104,12 +105,7 @@ void setup() {
     Serial.println("Failed to add peer");
     return;
   }
-  //ending the esp now part 
-  //wifi part
-  
-  
-  
-  // Register peer
+  establishFireBaseConnection();
   
 }
  
