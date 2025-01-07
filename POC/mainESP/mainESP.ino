@@ -135,7 +135,12 @@ void setup() {
     Serial.println("Failed to add peer");
     return;
   }
-  establishFireBaseConnection();
+  // Initialize Firestore (replaces establishFireBaseConnection())
+  if (!initFirestore()) {
+    Serial.println("Failed to initialize Firestore.");
+  } else {
+    Serial.println("Firestore initialized successfully.");
+  }
 }
  
 void loop() {
@@ -149,6 +154,7 @@ void loop() {
       display.println("session halted");
       display.display();
       delay(1000);
+      exampleUsage();
       //adding fireStoreData 
     }
   }
