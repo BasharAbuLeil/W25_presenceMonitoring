@@ -69,8 +69,9 @@ void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingDa
 
 // Callback function executed when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-    Serial.print("\r\nLast Packet Send Status:\t");
-    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  redCount=blueCount=greenCount=0;
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
 
@@ -147,7 +148,7 @@ void incDominantColor(int r,int g ,int b) {
 
 void setSendMessageFileds(){
   Serial.println("eneter set message func");
-  sendData.colorNum=getMaxCounter(redCount,blueCount,greenCount);
+  sendData.colorNum=getMaxCounter(redCount,greenCount,blueCount);
 }
 int getMaxCounter(int counter1, int counter2, int counter3) {
   if (counter1 >= counter2 && counter1 >= counter3) {
@@ -208,6 +209,7 @@ void setup() {
 
 void loop() {
   if(session) {
+    digitalWrite(BUILT_IN_LED, HIGH);
     redPW = getRedPW();
     // Map to value from 0-255
     int redValue = map(redPW, redMin,redMax,255,0);
@@ -224,11 +226,16 @@ void loop() {
     bluePW = getBluePW();
     // Map to value from 0-255
     int blueValue = map(bluePW, blueMin,blueMax,255,0);
-  
+    Serial.print("RedVal=");
+    Serial.println(redValue); 
+    Serial.print("greenVal=");
+    Serial.println(greenValue);
+    Serial.print("blueVal=");
+    Serial.println(blueValue);  
     timer+=250;
     incDominantColor(redValue,greenValue,blueValue);
       // Send data to master
-    if(timer==5000){
+    if(timer==2000){
       setSendMessageFileds();
       esp_err_t result = esp_now_send(masterMACAddress, (uint8_t *)&sendData, sizeof(sendData));
         
@@ -239,8 +246,9 @@ void loop() {
       }
       timer=0;
     }
-  } else {
-    timer=0;
+  }
+  else {
+    redCount=blueCount=greenCount=0;
   }
   delay(500);
 }
