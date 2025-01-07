@@ -7,8 +7,10 @@
 #include <string>
 #include "fire_store.h"
 
-#define ROW_NUM     4 // four rows
-#define COLUMN_NUM  4 // four columns
+
+const int BUILT_IN_LED=2;
+const int  ROW_NUM = 4; // four rows
+const int COLUMN_NUM= 4; // four columns
 const  int ID_LENGTH=6;
 char keys[ROW_NUM][COLUMN_NUM] = {
   {'1', '2', '3', 'A'},
@@ -24,8 +26,20 @@ typedef struct recieved_message {
   int value ;
 } data_received;
 
+
+
+
+
+typedef struct fireStoreData{
+  int id;
+  int color;
+
+}fireStoreData;
+
 extern Adafruit_SSD1306 display;
 
+
+std::string id;
 extern char * passwrod;
 extern char * ssid;
 bool wifiConnceted;
@@ -40,6 +54,18 @@ void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingDa
   Serial.println("Value received");
   Serial.println(value);
 }
+
+
+
+
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+ 
+
+
+
 void getId(){
   display.clearDisplay();
   display.setCursor(0, 0);
@@ -47,7 +73,7 @@ void getId(){
   display.display();
   delay(2000);
   display.clearDisplay();
-  std::string id="";
+  id="";
   int counter =0;
   while(counter<ID_LENGTH) {
     char key = keypad.getKey();
@@ -65,14 +91,18 @@ void getId(){
       display.display();
     }
   }
-  
+}
+
+
+
+
+bool isKeyPressed(){
+  char key = keypad.getKey();
+  if(key)
+    return true;
+  return false;
 }
 // Callback function called when data is sent
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("\r\nLast Packet Send Status:\t");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-}
- 
 void setup() {
   
   // Set up Serial Monitor
@@ -98,7 +128,7 @@ void setup() {
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
   peerInfo.channel = WiFi.channel();  
   peerInfo.encrypt = false;
-  
+  pinMode(BUILT_IN_LED,OUTPUT);
   // Add peer  
   delay(100);      
   if (esp_now_add_peer(&peerInfo) != ESP_OK){
@@ -106,25 +136,32 @@ void setup() {
     return;
   }
   establishFireBaseConnection();
-  
 }
  
 void loop() {
-  /*delay(5000);
   if(peerCommunicator->isOngoingSession()){
-    
+    //if any keyPressed or timeout halt  the time has to be synced.
+    if(isKeyPressed()){
+      digitalWrite(BUILT_IN_LED, LOW);
+      peerCommunicator->haltSession();
+      display.clearDisplay();
+      display.setCursor(0,0);
+      display.println("session halted");
+      display.display();
+      delay(1000);
+      //adding fireStoreData 
+    }
   }
   else{
     getId();
     peerCommunicator->initSession(); 
-  }*/
-  
-  peerCommunicator->initSession();
-  // display.println("ongoing session.");
-  // display.display();
-  delay(10000);
-  peerCommunicator->haltSession();
-  delay(5000);
-  // display.println("ongoing session.");
-  // display.display();
+    digitalWrite(BUILT_IN_LED,HIGH);
+  }
+  delay(100);
 }
+
+
+
+
+
+

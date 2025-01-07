@@ -25,7 +25,7 @@ espNow::espNow():m_isOngoingSession(false),m_macAddress(peerAddress){
 void espNow::initSession(){
   
   commands.session=true;
-  
+  m_isOngoingSession=true;
   // Send message via ESP-NOW
   esp_err_t result = esp_now_send(peerAddress, (uint8_t *) &commands, sizeof(commands));
    
@@ -42,7 +42,7 @@ void espNow::initSession(){
 
 void espNow::haltSession(){
   commands.session=false;
-  
+  m_isOngoingSession=false;
   // Send message via ESP-NOW
   esp_err_t result = esp_now_send(peerAddress, (uint8_t *) &commands, sizeof(commands));
    
