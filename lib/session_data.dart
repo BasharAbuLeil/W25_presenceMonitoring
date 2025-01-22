@@ -106,7 +106,7 @@ class _SessionDataPageState extends State<SessionDataPage> {
             LineChartBarData(
               spots: spots,
               isCurved: false,
-              color: AppTheme.accentColor,
+              color: AppTheme.accentColor, // Graph line color is AppTheme.accentColor
               dotData: FlDotData(show: true),
               belowBarData: BarAreaData(show: false),
             ),
@@ -116,10 +116,12 @@ class _SessionDataPageState extends State<SessionDataPage> {
     );
   }
 
-  void _exportToCsv(List<QueryDocumentSnapshot> minuteDocs, String sessionDocID) {
+  void _exportToCsv(List<QueryDocumentSnapshot> minuteDocs,
+      String sessionDocID) {
     try {
       // First get the session document to access the session date
-      _firestore.collection('sessions').doc(sessionDocID).get().then((sessionDoc) {
+      _firestore.collection('sessions').doc(sessionDocID).get().then((
+          sessionDoc) {
         if (sessionDoc.exists) {
           final sessionData = sessionDoc.data() as Map<String, dynamic>;
           final Timestamp? dateTs = sessionData['date'] as Timestamp?;
@@ -154,7 +156,8 @@ class _SessionDataPageState extends State<SessionDataPage> {
           final url = html.Url.createObjectUrlFromBlob(blob);
 
           // Create download link with session date in filename
-          final safeFileName = dateString.replaceAll(':', '-').replaceAll(' ', '_');
+          final safeFileName = dateString.replaceAll(':', '-').replaceAll(
+              ' ', '_');
           final anchor = html.AnchorElement(href: url)
             ..setAttribute("download", "session_data_$safeFileName.csv")
             ..click();
@@ -183,55 +186,102 @@ class _SessionDataPageState extends State<SessionDataPage> {
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        title: Text(
-          'Error',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onErrorContainer,
-          ),
-        ),
-        content: Text(
-          message,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'OK',
-              style: TextStyle(color: AppTheme.accentColor),
+      builder: (context) =>
+          AlertDialog(
+            backgroundColor: Theme
+                .of(context)
+                .colorScheme
+                .surface,
+            title: Text(
+              'Error',
+              style: TextStyle(
+                color: Theme
+                    .of(context)
+                    .colorScheme
+                    .onErrorContainer,
+              ),
             ),
+            content: Text(
+              message,
+              style: TextStyle(
+                color: Theme
+                    .of(context)
+                    .colorScheme
+                    .onSurface,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'OK',
+                  style: TextStyle(color: AppTheme.accentColor),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+
+  Widget _buildEnhancedInfoCard(String label,
+      String value,
+      String unit,
+      IconData icon,
+      TextTheme textTheme,
+      ColorScheme colorScheme,) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: colorScheme.outlineVariant,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: AppTheme.accentColor, // Updated Icon color to AppTheme.accentColor
+            size: 24,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: textTheme.titleLarge?.copyWith(
+                  color: AppTheme.accentColor, // Updated Value color to AppTheme.accentColor
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (unit.isNotEmpty) ...[
+                const SizedBox(width: 2),
+                Text(
+                  unit,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
     );
   }
-  Widget _buildInfoCard(String label,
-      String value,
-      TextTheme textTheme,
-      ColorScheme colorScheme,) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: textTheme.bodyMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: textTheme.titleLarge?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -266,7 +316,7 @@ class _SessionDataPageState extends State<SessionDataPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Session Information Card at the top
+            // Session Information Card with improved design
             StreamBuilder<DocumentSnapshot>(
               stream: _firestore
                   .collection('sessions')
@@ -292,49 +342,154 @@ class _SessionDataPageState extends State<SessionDataPage> {
                   dateTimeString =
                       DateFormat('yyyy-MM-dd HH:mm').format(dateTs.toDate());
                 }
+                final String patientId = sessionData?['userID'] ?? 'N/A';
 
                 return Card(
-                  elevation: 2,
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   color: colorScheme.surfaceVariant,
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(20.0),
                     child: Column(
                       children: [
-                        Text(
-                          'Session Information',
-                          style: textTheme.titleMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: AppTheme.accentColor,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Session Information',
+                              style: textTheme.titleMedium?.copyWith(
+                                color: AppTheme.accentColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: colorScheme.outlineVariant,
+                              width: 1,
+                            ),
+                          ),
+                          child: IntrinsicHeight(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment
+                                        .start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.calendar_today,
+                                            size: 16,
+                                            color: AppTheme.accentColor, // Updated Date & Time Icon color
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Date & Time',
+                                            style: textTheme.bodyMedium
+                                                ?.copyWith(
+                                              color: AppTheme.accentColor, // Updated Date & Time Label color
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        dateTimeString,
+                                        style: textTheme.titleMedium?.copyWith(
+                                          color: AppTheme.accentColor, // Updated Date & Time Value color
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  width: 1,
+                                  color: colorScheme.outlineVariant,
+                                  margin: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment
+                                        .start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.person_outline,
+                                            size: 16,
+                                            color: AppTheme.accentColor, // Updated Patient ID Icon color
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Patient ID',
+                                            style: textTheme.bodyMedium
+                                                ?.copyWith(
+                                              color: AppTheme.accentColor, // Updated Patient ID Label color
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        patientId,
+                                        style: textTheme.titleMedium?.copyWith(
+                                          color: AppTheme.accentColor, // Updated Patient ID Value color
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          dateTimeString,
-                          style: textTheme.headlineMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _buildInfoCard(
+                            _buildEnhancedInfoCard(
                               'Duration',
-                              '${sessionData?['duration'] ?? 0} min',
+                              '${sessionData?['duration'] ?? 0}',
+                              'min',
+                              Icons.timer_outlined,
                               textTheme,
                               colorScheme,
                             ),
-                            _buildInfoCard(
+                            _buildEnhancedInfoCard(
                               'Avg Activity',
-                              '${sessionData?['avgActivity'] ?? 0}%',
+                              '${sessionData?['avgActivity'] ?? 0}',
+                              '%',
+                              Icons.trending_up,
                               textTheme,
                               colorScheme,
                             ),
-                            _buildInfoCard(
+                            _buildEnhancedInfoCard(
                               'Status',
                               sessionData?['relaxed'] == true
                                   ? 'Relaxed'
                                   : 'Active',
+                              '',
+                              sessionData?['relaxed'] == true
+                                  ? Icons.brightness_low
+                                  : Icons.directions_run,
                               textTheme,
                               colorScheme,
                             ),
@@ -349,7 +504,7 @@ class _SessionDataPageState extends State<SessionDataPage> {
 
             const SizedBox(height: 24),
 
-            // Table and Graph side by side
+            // Activity Graph
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: _firestore
@@ -400,8 +555,8 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                             (states) => colorScheme.surface,
                                       ),
                                       columnSpacing: 16,
-                                      headingTextStyle:
-                                      textTheme.titleMedium?.copyWith(
+                                      headingTextStyle: textTheme.titleMedium
+                                          ?.copyWith(
                                         color: colorScheme.onSurfaceVariant,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -412,6 +567,7 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                       columns: const [
                                         DataColumn(label: Text('Minute')),
                                         DataColumn(label: Text('Color')),
+                                        DataColumn(label: Text('Intensity')),
                                         DataColumn(label: Text('Activity')),
                                         DataColumn(label: Text('Relaxed')),
                                       ],
@@ -419,17 +575,18 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                         final logData =
                                         doc.data() as Map<String, dynamic>;
                                         return DataRow(cells: [
-                                          DataCell(Text(
-                                              '${logData['minuteIndex'] ??
+                                          DataCell(
+                                              Text('${logData['minuteIndex'] ??
                                                   0}')),
+                                          DataCell(Text(
+                                              '${logData['color'] ?? 'N/A'}')),
                                           DataCell(
-                                              Text('${logData['color'] ??
+                                              Text('${logData['intensity'] ??
                                                   'N/A'}')),
-                                          DataCell(
-                                              Text('${logData['activity'] ??
-                                                  0}%')),
-                                          DataCell(
-                                              Text(logData['relaxed'] == true
+                                          DataCell(Text(
+                                              '${logData['activity'] ?? 0}%')),
+                                          DataCell(Text(
+                                              logData['relaxed'] == true
                                                   ? 'Yes'
                                                   : 'No')),
                                         ]);
@@ -443,13 +600,19 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                 child: SizedBox(
                                   width: 180,
                                   child: ElevatedButton.icon(
-                                    onPressed: () => _exportToCsv(minuteDocs, widget.sessionDocID),
+                                    onPressed: () =>
+                                        _exportToCsv(
+                                          minuteDocs,
+                                          DateFormat('yyyy-MM-dd_HH-mm')
+                                              .format(DateTime.now()),
+                                        ),
                                     icon: const Icon(Icons.download),
                                     label: const Text('Export to CSV'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.accentColor,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
                                     ),
                                   ),
                                 ),
