@@ -116,16 +116,99 @@ class _SessionDataPageState extends State<SessionDataPage> {
     );
   }
 
-  // Your existing _exportToCsv and _showErrorDialog methods remain the same
-  void _exportToCsv(List<QueryDocumentSnapshot> minuteDocs,
-      String sessionDate) {
-    // Your existing code
+  void _exportToCsv(List<QueryDocumentSnapshot> minuteDocs, String sessionDocID) {
+    try {
+      // First get the session document to access the session date
+      _firestore.collection('sessions').doc(sessionDocID).get().then((sessionDoc) {
+        if (sessionDoc.exists) {
+          final sessionData = sessionDoc.data() as Map<String, dynamic>;
+          final Timestamp? dateTs = sessionData['date'] as Timestamp?;
+          final dateString = dateTs != null
+              ? DateFormat('yyyy-MM-dd HH:mm').format(dateTs.toDate())
+              : 'N/A';
+
+          // Prepare CSV headers and data
+          List<List<dynamic>> rows = [
+            ['Session Date: $dateString'],
+            [], // Empty row for spacing
+            ['Minute', 'Color', 'Activity', 'Relaxed']
+          ];
+
+          // Populate rows from Firestore documents
+          for (var doc in minuteDocs) {
+            final logData = doc.data() as Map<String, dynamic>;
+            rows.add([
+              logData['minuteIndex'] ?? '',
+              logData['color'] ?? '',
+              '${logData['activity'] ?? ''}%',
+              (logData['relaxed'] == true) ? 'Yes' : 'No',
+            ]);
+          }
+
+          // Convert to CSV
+          String csvData = const ListToCsvConverter().convert(rows);
+
+          // Create blob
+          final bytes = utf8.encode(csvData);
+          final blob = html.Blob([bytes]);
+          final url = html.Url.createObjectUrlFromBlob(blob);
+
+          // Create download link with session date in filename
+          final safeFileName = dateString.replaceAll(':', '-').replaceAll(' ', '_');
+          final anchor = html.AnchorElement(href: url)
+            ..setAttribute("download", "session_data_$safeFileName.csv")
+            ..click();
+
+          // Clean up
+          html.Url.revokeObjectUrl(url);
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('CSV file downloaded successfully'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          _showErrorDialog('Session data not found');
+        }
+      }).catchError((error) {
+        _showErrorDialog('Failed to fetch session data: $error');
+      });
+    } catch (e) {
+      _showErrorDialog('Failed to export CSV: $e');
+    }
   }
 
   void _showErrorDialog(String message) {
-    // Your existing code
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        title: Text(
+          'Error',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onErrorContainer,
+          ),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'OK',
+              style: TextStyle(color: AppTheme.accentColor),
+            ),
+          ),
+        ],
+      ),
+    );
   }
-
   Widget _buildInfoCard(String label,
       String value,
       TextTheme textTheme,
@@ -329,7 +412,6 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                       columns: const [
                                         DataColumn(label: Text('Minute')),
                                         DataColumn(label: Text('Color')),
-                                        DataColumn(label: Text('Intensity')),
                                         DataColumn(label: Text('Activity')),
                                         DataColumn(label: Text('Relaxed')),
                                       ],
@@ -342,9 +424,6 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                                   0}')),
                                           DataCell(
                                               Text('${logData['color'] ??
-                                                  'N/A'}')),
-                                          DataCell(Text(
-                                              '${logData['intensity'] ??
                                                   'N/A'}')),
                                           DataCell(
                                               Text('${logData['activity'] ??
@@ -364,19 +443,13 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                 child: SizedBox(
                                   width: 180,
                                   child: ElevatedButton.icon(
-                                    onPressed: () =>
-                                        _exportToCsv(
-                                            minuteDocs,
-                                            DateFormat('yyyy-MM-dd_HH-mm')
-                                                .format(
-                                                DateTime.now())),
+                                    onPressed: () => _exportToCsv(minuteDocs, widget.sessionDocID),
                                     icon: const Icon(Icons.download),
                                     label: const Text('Export to CSV'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.accentColor,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 12),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
                                     ),
                                   ),
                                 ),
