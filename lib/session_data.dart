@@ -116,27 +116,40 @@ class _SessionDataPageState extends State<SessionDataPage> {
     );
   }
 
-  void _exportToCsv(List<QueryDocumentSnapshot> minuteDocs,
-      String sessionDocID) {
+  void _exportToCsv(
+      List<QueryDocumentSnapshot> minuteDocs,
+      String sessionDocID,
+      ) {
     try {
-      // First get the session document to access the session date
       _firestore.collection('sessions').doc(sessionDocID).get().then((
           sessionDoc) {
         if (sessionDoc.exists) {
           final sessionData = sessionDoc.data() as Map<String, dynamic>;
+
+          // 1. Extract session-level data from Firestore
           final Timestamp? dateTs = sessionData['date'] as Timestamp?;
-          final dateString = dateTs != null
+          final dateString = (dateTs != null)
               ? DateFormat('yyyy-MM-dd HH:mm').format(dateTs.toDate())
               : 'N/A';
 
-          // Prepare CSV headers and data
+          // Make sure these fields match the ones in your Firestore
+          final duration = sessionData['duration'] ?? 0;
+          final avgActivity = sessionData['avgActivity'] ?? 0;
+          final isRelaxed = sessionData['relaxed'] == true;
+          final status = isRelaxed ? 'Relaxed' : 'Active';
+
+          // 2. Prepare CSV rows
+          //    Note the added summary lines (duration, avgActivity, status)
           List<List<dynamic>> rows = [
             ['Session Date: $dateString'],
+            ['Duration: $duration min'],
+            ['Avg Activity: $avgActivity%'],
+            ['Status: $status'],
             [], // Empty row for spacing
             ['Minute', 'Color', 'Activity', 'Relaxed']
           ];
 
-          // Populate rows from Firestore documents
+          // 3. Add the minuteLogs subcollection data
           for (var doc in minuteDocs) {
             final logData = doc.data() as Map<String, dynamic>;
             rows.add([
@@ -147,25 +160,26 @@ class _SessionDataPageState extends State<SessionDataPage> {
             ]);
           }
 
-          // Convert to CSV
+          // 4. Add a final line to mark report generation
+          final reportTime = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+          rows.add([]);
+          rows.add(['Report Generated: $reportTime']);
+
+          // 5. Convert rows to CSV
           String csvData = const ListToCsvConverter().convert(rows);
 
-          // Create blob
+          // 6. Trigger browser download
           final bytes = utf8.encode(csvData);
           final blob = html.Blob([bytes]);
           final url = html.Url.createObjectUrlFromBlob(blob);
-
-          // Create download link with session date in filename
-          final safeFileName = dateString.replaceAll(':', '-').replaceAll(
-              ' ', '_');
+          final safeFileName = dateString.replaceAll(':', '-').replaceAll(' ', '_');
           final anchor = html.AnchorElement(href: url)
             ..setAttribute("download", "session_data_$safeFileName.csv")
             ..click();
 
-          // Clean up
           html.Url.revokeObjectUrl(url);
 
-          // Show success message
+          // 7. Notify success
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('CSV file downloaded successfully'),
@@ -603,8 +617,7 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                     onPressed: () =>
                                         _exportToCsv(
                                           minuteDocs,
-                                          DateFormat('yyyy-MM-dd_HH-mm')
-                                              .format(DateTime.now()),
+                                          widget.sessionDocID,
                                         ),
                                     icon: const Icon(Icons.download),
                                     label: const Text('Export to CSV'),
