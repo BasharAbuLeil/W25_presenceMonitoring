@@ -289,7 +289,7 @@ const int S2=18;
 const int S3=19;
 const int sensorOut=27;
 
-
+uint8_t masterMACAddress[] = {0x10, 0x06, 0x1C, 0x86, 0x1D, 0xB0};
 
 int redMin = 70; // Red minimum value
 int redMax = 229; // Red maximum value
@@ -298,7 +298,7 @@ int greenMax = 310; // Green maximum value
 int blueMin = 90; // Blue minimum value
 int blueMax = 275; // Blue maximum value
 
-
+esp_now_peer_info_t peerInfo;
 
 int redPW = 0;
 int greenPW = 0;
@@ -468,6 +468,34 @@ void printData() {
 
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
+  Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
+  //WiFi.begin(ssid, password);
+
+  //while(WiFi.status() != WL_CONNECTED) {
+  //   tries++;
+  //   delay(1000);
+  //   Serial.print(".");
+  // }
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  esp_now_register_send_cb(OnDataSent);
+  esp_now_register_recv_cb(onDataReceive);
+  memcpy(peerInfo.peer_addr, masterMACAddress, 6);
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
+  
+  // Add peer  
+  delay(100);      
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
+  else{
+   Serial.println("Success"); 
+  }
 #ifdef ESP32
   sensorSerial.begin(LD2410_BAUD_RATE, SERIAL_8N1, RX_PIN, TX_PIN);
 #else
@@ -475,7 +503,6 @@ void setup() {
 #endif
   pinMode(INDICATOR_PIN, OUTPUT);
   delay(2000);
-  Serial.println(__FILE__);
   if (!sensor.begin()) {
     Serial.println("Failed to communicate with the sensor.");
     while (true)

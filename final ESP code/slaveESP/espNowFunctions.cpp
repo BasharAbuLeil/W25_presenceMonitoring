@@ -1,33 +1,33 @@
 #include "espNowFunctions.h"
+uint8_t peerAddress[] = {0x10, 0x06, 0x1C, 0x86, 0x1D, 0xB0};
 
-uint8_t peerAddress[]={0x10,0x06,0x1C,0x86,0xA2,0x9C};
 bool espNowSession;
 sentMessage cmd;
 int packetNum=0;
 extern unsigned long nextPrint,printEvery;
 void setupEspNow() {
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
+  // WiFi.mode(WIFI_STA);
+  // WiFi.disconnect();
 
-  // Initialize ESP-NOW
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Error initializing ESP-NOW");
-    ESP.restart();
-  }
-  Serial.println("ESP-NOW initialized");
+  // // Initialize ESP-NOW
+  // if (esp_now_init() != ESP_OK) {
+  //   Serial.println("Error initializing ESP-NOW");
+  //   ESP.restart();
+  // }
+  // Serial.println("ESP-NOW initialized");
 
-  // Register peer
-  esp_now_peer_info_t peerInfo;
-  memcpy(peerInfo.peer_addr, peerAddress, 6);
-  peerInfo.channel = 0;
-  peerInfo.encrypt = false;
-  esp_now_register_send_cb(OnDataSent);
-  esp_now_register_recv_cb(onDataReceive);
-  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-    Serial.println("Failed to add peer");
-  } else {
-    Serial.println("Peer added successfully");
-  }
+  // // Register peer
+  // esp_now_peer_info_t peerInfo;
+  // memcpy(peerInfo.peer_addr, masterMACAddress, 6);
+  // peerInfo.channel = 0;
+  // peerInfo.encrypt = false;
+  // esp_now_register_send_cb(OnDataSent);
+  // esp_now_register_recv_cb(onDataReceive);
+  // if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+  //   Serial.println("Failed to add peer");
+  // } else {
+  //   Serial.println("Peer added successfully");
+  // }
 }
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
