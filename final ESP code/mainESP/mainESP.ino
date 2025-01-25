@@ -62,7 +62,8 @@ void connectToWiFi() {
 void disconnectWiFi() {
   Serial.println("Disconnecting Wi-Fi...");
   WiFi.disconnect(true);
-  WiFi.mode(WIFI_OFF);
+  WiFi.mode(WIFI_STA);
+  ESP.restart();
   Serial.println("Wi-Fi disconnected.");
 }
 
