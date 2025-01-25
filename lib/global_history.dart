@@ -50,7 +50,7 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
         [_isSingleDay ? 'Date: ${_formatDate(_expandedStart)}' :
         'Date Range: ${_formatDate(_expandedStart)} - ${_formatDate(_expandedEnd)}'],
         [], // Empty row for spacing
-        ['Date', 'Time', 'Patient ID', 'Duration (min)', 'Activity (%)', 'Color', 'Intensity', 'Relaxed']
+        ['Date', 'Time', 'Patient ID', 'Duration (min)', 'Activity (%)', 'Color', 'Relaxed'] // Removed 'Intensity'
       ];
 
       // Populate rows from Firestore documents
@@ -69,7 +69,7 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
           duration.toString(),  // Convert to string after calculation
           activity.toString(), // Convert to string after calculation
           data['color'] ?? 'N/A',
-          data['intensity'] ?? 'N/A',
+          // data['intensity'] ?? 'N/A', // Removed 'Intensity'
           data['relaxed'] == true ? 'Yes' : 'No',
         ]);
       }
@@ -175,8 +175,11 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
       appBar: AppBar(
         title: Text(
           'Treatment History',
-          style: Theme.of(context).appBarTheme.titleTextStyle
-              ?? textTheme.titleLarge?.copyWith(color: colorScheme.onBackground),
+          style: Theme.of(context).appBarTheme.titleTextStyle?.copyWith(
+            color: colorScheme.onBackground,
+          ) ?? textTheme.titleLarge?.copyWith(
+            color: colorScheme.onBackground,
+          ),
         ),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       ),
@@ -265,7 +268,7 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
                                   DataColumn(label: Text('Duration')),
                                   DataColumn(label: Text('Activity')),
                                   DataColumn(label: Text('Color')),
-                                  DataColumn(label: Text('Intensity')),
+                                  // DataColumn(label: Text('Intensity')), // Removed 'Intensity' column
                                   DataColumn(label: Text('Relaxed')),
                                   DataColumn(label: Text('View')),
                                 ],
@@ -281,7 +284,7 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
                                       DataCell(Text('${data['duration'] ?? 0} min')),
                                       DataCell(Text('${data['avgActivity'] ?? 0}%')),
                                       DataCell(Text('${data['color'] ?? 'N/A'}')),
-                                      DataCell(Text('${data['intensity'] ?? 'N/A'}')),
+                                      // DataCell(Text('${data['intensity'] ?? 'N/A'}')), // Removed 'Intensity' cell
                                       DataCell(Text(data['relaxed'] == true ? 'Yes' : 'No')),
                                       DataCell(
                                         FilledButton.tonal(
