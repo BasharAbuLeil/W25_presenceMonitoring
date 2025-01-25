@@ -18,7 +18,7 @@ char keys[ROW_NUM][COLUMN_NUM] = {
   {'7', '8', '9', 'C'},
   {'*', '0', '#', 'D'}
 };
-byte pin_rows[ROW_NUM]      = {12, 14, 27, 26}; // GPIOs for rows
+byte pin_rows[ROW_NUM] = {12, 14, 27, 26}; // GPIOs for rows
 byte pin_column[COLUMN_NUM] = {25, 33, 32, 4};  // GPIOs for columns
 Keypad keypad = Keypad( makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM );
 
@@ -82,13 +82,16 @@ void getId(){
         id.pop_back();
         counter--;
       }
-      else{
+      else if(key>='0'&&key<='9'){
         id+=key;
         counter++;
       }
       display.setCursor(0, 0);
+      display.clearDisplay();
       display.print(id.c_str());
       display.display();
+      Serial.println("id string =");
+      Serial.println(id.c_str());
     }
   }
 }
@@ -154,7 +157,7 @@ void loop() {
       display.println("session halted");
       display.display();
       delay(1000);
-      exampleUsage();
+      //exampleUsage();
       //adding fireStoreData 
     }
   }
