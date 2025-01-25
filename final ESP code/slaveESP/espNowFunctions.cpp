@@ -5,29 +5,28 @@ bool espNowSession;
 sentMessage cmd;
 int packetNum=0;
 extern unsigned long nextPrint,printEvery;
+esp_now_peer_info_t peerInfo;
 void setupEspNow() {
-  // WiFi.mode(WIFI_STA);
-  // WiFi.disconnect();
-
-  // // Initialize ESP-NOW
-  // if (esp_now_init() != ESP_OK) {
-  //   Serial.println("Error initializing ESP-NOW");
-  //   ESP.restart();
-  // }
-  // Serial.println("ESP-NOW initialized");
-
-  // // Register peer
-  // esp_now_peer_info_t peerInfo;
-  // memcpy(peerInfo.peer_addr, masterMACAddress, 6);
-  // peerInfo.channel = 0;
-  // peerInfo.encrypt = false;
-  // esp_now_register_send_cb(OnDataSent);
-  // esp_now_register_recv_cb(onDataReceive);
-  // if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-  //   Serial.println("Failed to add peer");
-  // } else {
-  //   Serial.println("Peer added successfully");
-  // }
+  WiFi.mode(WIFI_STA);
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  esp_now_register_send_cb(OnDataSent);
+  esp_now_register_recv_cb(onDataReceive);
+  memcpy(peerInfo.peer_addr, peerAddress, 6);
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
+  
+  // Add peer  
+  delay(100);      
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
+  else{
+   Serial.println("Success"); 
+  }
 }
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
