@@ -38,6 +38,7 @@ void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingDa
   espNowSession=!espNowSession;
   if(espNowSession){
     Serial.println("session started");
+    packetNum=0;
     nextPrint = millis() + printEvery;
   }
   else{
@@ -58,6 +59,7 @@ void sendData(double avg,int col){
   esp_err_t result = esp_now_send(peerAddress, (uint8_t *) &cmd, sizeof(cmd));
    
   if (result == ESP_OK) {
+    packetNum++;
     Serial.println("Sending confirmed");
   }
   else {
