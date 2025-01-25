@@ -146,7 +146,7 @@ class _SessionDataPageState extends State<SessionDataPage> {
             ['Avg Activity: $avgActivity%'],
             ['Status: $status'],
             [], // Empty row for spacing
-            ['Minute', 'Color', 'Activity', 'Relaxed']
+            ['Minute', 'Color', 'Activity', 'Relaxed'] // Removed 'Intensity' from header
           ];
 
           // 3. Add the minuteLogs subcollection data
@@ -581,7 +581,7 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                       columns: const [
                                         DataColumn(label: Text('Minute')),
                                         DataColumn(label: Text('Color')),
-                                        DataColumn(label: Text('Intensity')),
+                                        // DataColumn(label: Text('Intensity')), // Removed Intensity Column
                                         DataColumn(label: Text('Activity')),
                                         DataColumn(label: Text('Relaxed')),
                                       ],
@@ -594,9 +594,9 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                                   0}')),
                                           DataCell(Text(
                                               '${logData['color'] ?? 'N/A'}')),
-                                          DataCell(
-                                              Text('${logData['intensity'] ??
-                                                  'N/A'}')),
+                                          // DataCell(
+                                          //     Text('${logData['intensity'] ??
+                                          //         'N/A'}')), // Removed Intensity DataCell
                                           DataCell(Text(
                                               '${logData['activity'] ?? 0}%')),
                                           DataCell(Text(
