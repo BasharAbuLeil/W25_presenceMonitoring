@@ -4,6 +4,11 @@
 #include <vector>
 #include "display.h" // Assuming your display.h is correctly set up
 #include "SD_functions.h"
+#include "espNowFunctions.h"
+
+
+extern std::vector<recivedMessage> g_receivedData;
+extern String id;        // user ID captured from mainESP
 
 // Global Firebase objects (adjust as needed)
 FirebaseData fbdo;
@@ -122,6 +127,73 @@ bool createSubcollectionDocument(const String& parentDocName,
         return false;
     }
 }
+
+
+void uploadDataToFirestore(
+    const String& userID,
+    double avgActivity,
+    int color,
+    const std::vector<recivedMessage>& receivedData
+) {
+    // 1) Ensure Firestore is initialized
+    if (!initFirestore()) {
+        Serial.println("Firestore initialization failed. Cannot continue.");
+        return;
+    }
+
+    // 2) Build the main session document fields
+    //    Depending on your preference, you could let Firestore assign the timestamp.
+    //    For simplicity, here is a local time approach (requires <ctime> or <TimeLib.h>):
+    time_t now = time(nullptr); 
+    String dateTimeString = ctime(&now); 
+    dateTimeString.trim(); // Remove any trailing newline
+
+    // The session document (parent document) might have these fields:
+    // - userID            -> from mainESP "id" variable
+    // - date              -> current date/time
+    // - duration          -> length of receivedData
+    // - avgActivity       -> aggregated average
+    // - color             -> most frequent color
+    // (Add more fields as needed)
+    std::vector<FirebaseField> sessionFields = {
+        {"userID", userID},
+        {"date", dateTimeString},
+        {"duration", String(receivedData.size())},
+        {"avgActivity", String(avgActivity, 2)}, // e.g. keep 2 decimal places
+        {"color", String(color)}
+    };
+
+    // 3) Create the session document in Firestore (auto ID)
+    String newSessionDocName = createSessionDocument(sessionFields);
+    if (newSessionDocName.isEmpty()) {
+        Serial.println("Failed to create session document.");
+        return;
+    }
+    Serial.println("Session doc created successfully.");
+
+    // 4) For each entry in g_receivedData, create a subcollection document
+    //    with the fields minuteIndex, color, activity.
+    //    (You can add more fields as needed.)
+    for (size_t i = 0; i < receivedData.size(); i++) {
+        const recivedMessage& msg = receivedData[i];
+        std::vector<FirebaseField> minuteFields = {
+            {"minuteIndex", String(msg.packetNum)},
+            {"color", String(msg.col)},
+            {"activity", String(msg.avg, 2)}
+        };
+
+        // Create the subcollection document under "minuteLogs"
+        bool success = createSubcollectionDocument(newSessionDocName, "minuteLogs", minuteFields);
+        if (!success) {
+            Serial.printf("Failed to create minuteLogs document at index %d.\n", i);
+        } else {
+            Serial.printf("minuteLogs document created for index %d.\n", i);
+        }
+    }
+
+    Serial.println("Firestore upload complete.");
+}
+
 
 /**
  * @brief Example usage of creating a session document and a subcollection document.
