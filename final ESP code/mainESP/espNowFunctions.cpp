@@ -43,7 +43,48 @@ void initSession(){
 
 }
 
+void handleReceivedData()
+{
+    // Check if the vector is empty
+    if (g_receivedData.empty()) {
+        Serial.println("No data in vector");
+        return;
+    }
 
+    double sum = 0.0;
+    // A map to track frequency of each col value
+    std::map<int, int> colFrequency;
+
+    // Iterate through the vector
+    for (const auto& msg : g_receivedData) {
+        sum += msg.avg;           // Accumulate avg values
+        colFrequency[msg.col]++;  // Count frequency of each col
+    }
+
+    // Calculate overall average
+    double avgActivity = sum / g_receivedData.size();
+
+    // Find the color (col) with the highest frequency
+    // The following code uses a simple loop or std::max_element
+    int color = 0;
+    int maxCount = 0;
+    for (const auto& item : colFrequency) {
+        if (item.second > maxCount) {
+            maxCount = item.second;
+            color = item.first;
+        }
+    }
+
+    // Print or use avgActivity and color as needed
+    Serial.print("Average Activity (avgActivity): ");
+    Serial.println(avgActivity);
+
+    Serial.print("Most Frequent Color (color): ");
+    Serial.println(color);
+    
+    // Optionally, clear the vector if you want to reset after processing
+    // g_receivedData.clear();
+}
 
 void haltSession(){
   
