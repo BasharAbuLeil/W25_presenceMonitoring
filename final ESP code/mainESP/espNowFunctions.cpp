@@ -1,4 +1,7 @@
 #include "espNowFunctions.h"
+#include <vector>
+
+static std::vector<recivedMessage> g_receivedData;
 
 uint8_t peerAddress[]={0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
 bool espNowSession;
@@ -74,5 +77,9 @@ void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingDa
   Serial.print(d1.avg);
   Serial.print("col");
   Serial.print(d1.col);
+  g_receivedData.push_back(d1);
+  // for testing if its accually work
+  Serial.print("Current vector size: ");
+  Serial.println(g_receivedData.size());
 }
 
