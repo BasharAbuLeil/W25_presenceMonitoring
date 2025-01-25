@@ -142,22 +142,11 @@ void uploadDataToFirestore(
     }
 
     // 2) Build the main session document fields
-    //    Depending on your preference, you could let Firestore assign the timestamp.
-    //    For simplicity, here is a local time approach (requires <ctime> or <TimeLib.h>):
-    time_t now = time(nullptr); 
-    String dateTimeString = ctime(&now); 
-    dateTimeString.trim(); // Remove any trailing newline
-
-    // The session document (parent document) might have these fields:
-    // - userID            -> from mainESP "id" variable
-    // - date              -> current date/time
-    // - duration          -> length of receivedData
-    // - avgActivity       -> aggregated average
-    // - color             -> most frequent color
-    // (Add more fields as needed)
+    //    Instead of assigning our own date/time string, we'll let Firestore 
+    //    fill the 'date' field with server time via REQUEST_TIME.
     std::vector<FirebaseField> sessionFields = {
         {"userID", userID},
-        {"date", dateTimeString},
+        {"date", "REQUEST_TIME"},  // Firestore will store a server timestamp
         {"duration", String(receivedData.size())},
         {"avgActivity", String(avgActivity, 2)}, // e.g. keep 2 decimal places
         {"color", String(color)}
@@ -185,9 +174,9 @@ void uploadDataToFirestore(
         // Create the subcollection document under "minuteLogs"
         bool success = createSubcollectionDocument(newSessionDocName, "minuteLogs", minuteFields);
         if (!success) {
-            Serial.printf("Failed to create minuteLogs document at index %d.\n", i);
+            Serial.printf("Failed to create minuteLogs document at index %d.\n", static_cast<int>(i));
         } else {
-            Serial.printf("minuteLogs document created for index %d.\n", i);
+            Serial.printf("minuteLogs document created for index %d.\n", static_cast<int>(i));
         }
     }
 
