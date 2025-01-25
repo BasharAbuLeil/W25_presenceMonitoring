@@ -1,46 +1,67 @@
-// #include "espNowFunctions.h"
+#include "espNowFunctions.h"
 
-// // Define a peer address
-// uint8_t peerAddress[] = {0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
+uint8_t peerAddress[]={0x10,0x06,0x1C,0x86,0xA2,0x9C};
+bool espNowSession;
+sentMessage cmd;
+int packetNum=0;
+extern unsigned long nextPrint,printEvery;
+void setupEspNow() {
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
 
-// // Constructor for espNow class
-// espNow::espNow() : m_isOngoingSession(false), m_macAddress(peerAddress) {
-//   WiFi.mode(WIFI_STA);
+  // Initialize ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    ESP.restart();
+  }
+  Serial.println("ESP-NOW initialized");
 
-//   if (esp_now_init() != ESP_OK) {
-//     Serial.println("Error initializing ESP-NOW");
-//     throw espNowExceptions();
-//   }
+  // Register peer
+  esp_now_peer_info_t peerInfo;
+  memcpy(peerInfo.peer_addr, peerAddress, 6);
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
+  esp_now_register_send_cb(OnDataSent);
+  esp_now_register_recv_cb(onDataReceive);
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+  } else {
+    Serial.println("Peer added successfully");
+  }
+}
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
 
-//   esp_now_register_recv_cb(OnDataRecv);
-//   esp_now_register_send_cb(OnDataSent);
+void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingData, int len) {
+  espNowSession=!espNowSession;
+  if(espNowSession){
+    Serial.println("session started");
+    nextPrint = millis() + printEvery;
+  }
+  else{
+    Serial.println("session ended.");
+  }
+}
 
-//   memcpy(m_peerInfo.peer_addr, m_macAddress, 6);
-//   m_peerInfo.channel = 0;
-//   m_peerInfo.encrypt = false;
-
-//   if (esp_now_add_peer(&m_peerInfo) != ESP_OK) {
-//     Serial.println("Failed to add peer");
-//     return;
-//   }
-// }
-
-// // Callback function executed when data is sent
-// void espNow::OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-//   Serial.print("\r\nLast Packet Send Status:\t");
-//   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-// }
-
-// // Callback function executed when data is received
-// void espNow::OnDataRecv(const esp_now_recv_info *recv_info, const uint8_t *incomingData, int len) {
-//   recievedMsg m1;
-//   memcpy(&m1, incomingData, sizeof(m1));
-//   Serial.println("Data received");
-//   Serial.print("Session status: ");
-//   Serial.println(m1.init);
-// }
-
-// // Method to check ongoing session status
-// bool espNow::isOngoingSession() const {
-//   return m_isOngoingSession;
-// }
+void sendData(double avg,int col){
+  cmd.avg=avg;
+  cmd.col=col;
+  cmd.packetNum=packetNum;
+  Serial.print("packetNum");
+  Serial.print(cmd.packetNum);
+  Serial.print("avg");
+  Serial.print(cmd.avg);
+  Serial.print("col");
+  Serial.print(cmd.col);
+  esp_err_t result = esp_now_send(peerAddress, (uint8_t *) &cmd, sizeof(cmd));
+   
+  if (result == ESP_OK) {
+    Serial.println("Sending confirmed");
+  }
+  else {
+    Serial.println("Sending error");
+  }
+}
+  

@@ -7,13 +7,9 @@
 
 
 
-typedef struct struct_message {
-  bool session;
-}message;
- 
 
 
-class espNow{
+/*class espNow{
   bool m_isOngoingSession;
   esp_now_peer_info_t m_peerInfo;
   uint8_t* m_macAddress;
@@ -25,13 +21,24 @@ public :
   void initSession();
   void haltSession();
   bool isOngoingSession();
-};
+};*/
 
+void setupEspNow();
+void initSession();
+void haltSession();
 
+typedef struct struct_message {
+  double avg;
+  int col;
+  int packetNum;
+}recivedMessage;
 
+typedef struct send_Message{
+  bool session;
+}sendMessage;
 
-
-class espNowExceptions{};
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
+void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingData, int len);
 
 // class espInitFailed{}: public espNowExceptions{};;
 

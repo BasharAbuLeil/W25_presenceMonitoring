@@ -42,26 +42,31 @@ extern Adafruit_SSD1306 display;
 std::string id;
 extern char * passwrod;
 extern char * ssid;
-bool wifiConnceted;
+
 int value;
-uint8_t broadcastAddress[] = {0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
-espNow* peerCommunicator;
 esp_now_peer_info_t peerInfo;
-data_received d1;
-void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingData, int len) {
-  memcpy(&d1, incomingData, sizeof(d1));
-  value = d1.value;
-  Serial.println("Value received");
-  Serial.println(value);
+extern bool espNowSession;
+
+
+
+void connectToWiFi() {
+  getWifiData();
+  Serial.println("Connecting to Wi-Fi...");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected to Wi-Fi!");
+}
+void disconnectWiFi() {
+  Serial.println("Disconnecting Wi-Fi...");
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
+  Serial.println("Wi-Fi disconnected.");
 }
 
 
-
-
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("\r\nLast Packet Send Status:\t");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-}
  
 
 
@@ -109,49 +114,45 @@ bool isKeyPressed(){
 void setup() {
   
   // Set up Serial Monitor
+  espNowSession=false;
   Serial.begin(115200);
   initDisplay();
   initSd();
-  getWifiData();
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  int tries=0;
-  while(WiFi.status() != WL_CONNECTED) {
-    tries++;
-    delay(1000);
-    Serial.print(".");
-  }
-  Serial.println("ssid:");
-  Serial.println(ssid);
-  Serial.println("password");
-  Serial.println(password);
-  peerCommunicator=new espNow;
-  esp_now_register_send_cb(OnDataSent);
-  esp_now_register_recv_cb(onDataReceive);
-  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = WiFi.channel();  
-  peerInfo.encrypt = false;
+  // getWifiData();
+  // WiFi.begin(ssid, password);
+  // int tries=0;
+  // while(WiFi.status() != WL_CONNECTED) {
+  //   tries++;
+  //   delay(1000);
+  //   Serial.print(".");
+  // }
+  // Serial.println("ssid:");
+  // Serial.println(ssid);
+  // Serial.println("password");
+  // Serial.println(password);
+  // peerCommunicator=new espNow;
+  // esp_now_register_send_cb(OnDataSent);
+  // esp_now_register_recv_cb(onDataReceive);
+  // memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  // peerInfo.channel = WiFi.channel();  
+  // peerInfo.encrypt = false;
   pinMode(BUILT_IN_LED,OUTPUT);
   // Add peer  
-  delay(100);      
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
-    Serial.println("Failed to add peer");
-    return;
-  }
+  //delay(100);      
+  // if (esp_now_add_peer(&peerInfo) != ESP_OK){
+  //   Serial.println("Failed to add peer");
+  //   return;
+  // }
   // Initialize Firestore (replaces establishFireBaseConnection())
-  if (!initFirestore()) {
-    Serial.println("Failed to initialize Firestore.");
-  } else {
-    Serial.println("Firestore initialized successfully.");
-  }
+  setupEspNow();
 }
  
 void loop() {
-  if(peerCommunicator->isOngoingSession()){
+  if(!espNowSession){
     //if any keyPressed or timeout halt  the time has to be synced.
     if(isKeyPressed()){
       digitalWrite(BUILT_IN_LED, LOW);
-      peerCommunicator->haltSession();
+      haltSession();
       display.clearDisplay();
       display.setCursor(0,0);
       display.println("session halted");
@@ -159,11 +160,20 @@ void loop() {
       delay(1000);
       //exampleUsage();
       //adding fireStoreData 
+      connectToWiFi();
+      if (!initFirestore()) {
+      Serial.println("Failed to initialize Firestore.");
+      } else {
+        Serial.println("Firestore initialized successfully.");
+      }
+      delay(5000);
+      disconnectWiFi();
+      setupEspNow();
     }
   }
   else{
     getId();
-    peerCommunicator->initSession(); 
+    initSession(); 
     digitalWrite(BUILT_IN_LED,HIGH);
   }
   delay(100);

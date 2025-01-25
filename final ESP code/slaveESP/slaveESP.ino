@@ -271,6 +271,7 @@ void loop() {
 //Change the communication baud rate here, if necessary
 //#define LD2410_BAUD_RATE 256000
 #include "MyLD2410.h"
+#include "espNowFunctions.h"
 
 #ifdef DEBUG_MODE
 MyLD2410 sensor(sensorSerial, true);
@@ -302,11 +303,14 @@ int blueMax = 275; // Blue maximum value
 int redPW = 0;
 int greenPW = 0;
 int bluePW = 0;
-
+int packetNumber=0;
 
 int redCount=0;
 int greenCount=0;
 int blueCount=0;
+
+double movingPerc=0;
+extern bool espNowSession;
 int getRedPW() {
  
   // Set sensor to read Red only
@@ -401,7 +405,7 @@ void colorMeasure(){
 void calcMovementPerc()
 {
   Serial.print("moving percentage:");
-  double movingPerc=movingCounter/seconds;
+  movingPerc=movingCounter/seconds;
   movingPerc=movingPerc/0.8;
   if(movingPerc>1){
   Serial.print("1.00");
@@ -490,18 +494,22 @@ void setup() {
   pinMode(sensorOut, INPUT);
   digitalWrite(S0,HIGH);
   digitalWrite(S1,LOW);
+  setupEspNow();
 }
 
 void loop() {
-  if ((sensor.check() == MyLD2410::Response::DATA) && (millis() > nextPrint)) {
-    nextPrint = millis() + printEvery;
-    printData();
-    colorMeasure();
-    if(seconds>=30){
-      calcMovementPerc();
-      int maxColor=getMaxCounter(redCount,greenCount,blueCount);
-      Serial.println(maxColor);
-      redCount=greenCount=blueCount=0;
+  if(espNowSession){
+      if ((sensor.check() == MyLD2410::Response::DATA) && (millis() > nextPrint)) {
+      nextPrint = millis() + printEvery;
+      printData();
+      colorMeasure();
+      if(seconds>=30){
+        calcMovementPerc();
+        int maxColor=getMaxCounter(redCount,greenCount,blueCount);
+        Serial.println(maxColor);
+        sendData(movingPerc,maxColor);
+        redCount=greenCount=blueCount=0;
+      }
     }
   }
 }
