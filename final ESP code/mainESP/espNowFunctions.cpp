@@ -1,15 +1,13 @@
 #include "espNowFunctions.h"
 
-uint8_t peerAddress[]={0x10,0x06,0x1C,0x86,0x1D,0xB0};
+uint8_t peerAddress[]={0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
 bool espNowSession;
 void setupEspNow() {
   WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
 
   // Initialize ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
-    ESP.restart();
   }
   Serial.println("ESP-NOW initialized");
 

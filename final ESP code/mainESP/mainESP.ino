@@ -118,37 +118,12 @@ void setup() {
   Serial.begin(115200);
   initDisplay();
   initSd();
-  // getWifiData();
-  // WiFi.begin(ssid, password);
-  // int tries=0;
-  // while(WiFi.status() != WL_CONNECTED) {
-  //   tries++;
-  //   delay(1000);
-  //   Serial.print(".");
-  // }
-  // Serial.println("ssid:");
-  // Serial.println(ssid);
-  // Serial.println("password");
-  // Serial.println(password);
-  // peerCommunicator=new espNow;
-  // esp_now_register_send_cb(OnDataSent);
-  // esp_now_register_recv_cb(onDataReceive);
-  // memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  // peerInfo.channel = WiFi.channel();  
-  // peerInfo.encrypt = false;
-  pinMode(BUILT_IN_LED,OUTPUT);
-  // Add peer  
-  //delay(100);      
-  // if (esp_now_add_peer(&peerInfo) != ESP_OK){
-  //   Serial.println("Failed to add peer");
-  //   return;
-  // }
-  // Initialize Firestore (replaces establishFireBaseConnection())
   setupEspNow();
+  pinMode(BUILT_IN_LED,OUTPUT);
 }
  
 void loop() {
-  if(!espNowSession){
+  if(espNowSession){
     //if any keyPressed or timeout halt  the time has to be synced.
     if(isKeyPressed()){
       digitalWrite(BUILT_IN_LED, LOW);
