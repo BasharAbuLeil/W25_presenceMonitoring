@@ -31,12 +31,33 @@ String dataBaseUrl;
  */
 void buildFirestoreJson(FirebaseJson &json, const std::vector<FirebaseField> &fields) {
     for (const auto &field : fields) {
-        // Example: "fields/userID/stringValue": "12345"
-        String path = "fields/" + field.key + "/stringValue";
-        json.set(path, field.value);
+        // Common path prefix for each field
+        String path = "fields/" + field.key + "/";
+
+        // Check the key to determine which Firestore data type to use
+        if (field.key == "duration" || field.key == "minuteIndex") {
+            // Store integer fields
+            path += "integerValue";
+            json.set(path, field.value);
+        }
+        else if (field.key == "avgActivity" || field.key == "activity") {
+            // Store as double
+            path += "doubleValue";
+            json.set(path, field.value);
+        }
+        else if (field.key == "date") {
+            // Store as timestamp; here we use "REQUEST_TIME" to let Firestore write a server timestamp
+            path += "timestampValue";
+            // If you have an actual timestamp string, replace "REQUEST_TIME" with the proper RFC3339 date string
+            json.set(path, field.value);
+        }
+        else {
+            // Default to stringValue (e.g., userID, color)
+            path += "stringValue";
+            json.set(path, field.value);
+        }
     }
 }
-
 /**
  * @brief Initializes Firestore with credentials read from your custom function.
  *
