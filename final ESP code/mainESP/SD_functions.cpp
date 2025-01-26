@@ -1,7 +1,8 @@
 #include "sd_functions.h"
+#include "display.h"
 // #include "credentials.h"
 
-
+extern Adafruit_SSD1306 display;
 //Define Global Strings
 
 char* ssid = nullptr;
@@ -9,7 +10,9 @@ char* password = nullptr;
 
 void initSd(){
     if(!SD.begin(SD_CS_PIN)) {
-        Serial.println("Card Mount Failed!");
+        display.clearDisplay();
+        display.print("Card Mount Failed!");
+        display.display();
         while (true) {
           
         }
@@ -18,10 +21,10 @@ void initSd(){
 
 void getWifiData(){
     if (readWiFiCredentials("/wifi.txt")) {
-        Serial.println("Wi-Fi credentials loaded successfully:");
-        Serial.print("SSID: ");
+        // Serial.println("Wi-Fi credentials loaded successfully:");
+        // Serial.print("SSID: ");
         Serial.println(ssid);
-        Serial.print("Password: ");
+        // Serial.print("Password: ");
         Serial.println(password);
         
         //Release memory
@@ -30,7 +33,7 @@ void getWifiData(){
         // ssid = nullptr;
         // password = nullptr;
     } else {
-        Serial.println("Failed to load Wi-Fi credentials.");
+        // Serial.println("Failed to load Wi-Fi credentials.");
     }
 }
 
@@ -48,14 +51,14 @@ bool readWiFiCredentials(const char* path) {
       temp.trim();
       ssid= new char[temp.length()+1];
      if(ssid == nullptr){
-        Serial.println("Failed to allocate memory for SSID");
+        // Serial.println("Failed to allocate memory for SSID");
         file.close();
         return false;
       }
        temp.toCharArray(ssid, temp.length()+1);
     
   }else{
-    Serial.println("No SSID found in the file");
+    // Serial.println("No SSID found in the file");
      file.close();
     return false;
   }
@@ -67,7 +70,7 @@ bool readWiFiCredentials(const char* path) {
     temp2.trim();
     password= new char[temp2.length()+1];
     if(password == nullptr){
-        Serial.println("Failed to allocate memory for password");
+        // Serial.println("Failed to allocate memory for password");
         delete[] ssid;
         ssid = nullptr;
         file.close();
@@ -75,7 +78,7 @@ bool readWiFiCredentials(const char* path) {
     }
     temp2.toCharArray(password,temp2.length()+1);
   }else{
-    Serial.println("No password found in the file");
+    // Serial.println("No password found in the file");
     delete[] ssid;
     ssid= nullptr;
     file.close();
@@ -92,9 +95,9 @@ void saveWiFiCredentials(const char* path, const char* _ssid, const char* _passw
         file.println(_ssid);
         file.print(_password);
          file.close();
-    Serial.println("Wi-Fi credentials saved successfully.");
+    // Serial.println("Wi-Fi credentials saved successfully.");
     } else {
-        Serial.println("Error creating or opening file");
+        // Serial.println("Error creating or opening file");
     }
 }
 
@@ -110,7 +113,7 @@ void readFireBaseCredentials(FirebaseData &fbdo,FirebaseAuth& auth,FirebaseConfi
   File myFile = SD.open("/fireBaseCreds.txt");
   const int numLines=5;
   if (myFile) {
-    Serial.println("Reading file:");
+    // Serial.println("Reading file:");
 
     // Read and print the specified number of lines (t)
     int linesRead = 0;
@@ -137,7 +140,7 @@ void readFireBaseCredentials(FirebaseData &fbdo,FirebaseAuth& auth,FirebaseConfi
 
     myFile.close();  // Close the file
   } else {
-    Serial.println("Error opening the file");
+    // Serial.println("Error opening the file");
   }
 }
 

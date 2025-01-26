@@ -187,44 +187,44 @@ void uploadDataToFirestore(
 /**
  * @brief Example usage of creating a session document and a subcollection document.
  */
-void exampleUsage() {
-    // Ensure Firestore is initialized before calling this function.
-    if (!initFirestore()) {
-        Serial.println("Firestore initialization failed. Cannot continue.");
-        return;
-    }
+// void exampleUsage() {
+//     // Ensure Firestore is initialized before calling this function.
+//     if (!initFirestore()) {
+//         Serial.println("Firestore initialization failed. Cannot continue.");
+//         return;
+//     }
 
-    // Prepare fields for the session document
-    std::vector<FirebaseField> sessionFields{
-        {"userID", "654321"},
-        {"date", "SomeTimestampOrValue"},
-        {"duration", "30"},
-        {"avgActivity", "75.0"},
-        {"color", "blue"},
-        {"intensity", "80"},
-        {"relaxed", "false"}
-    };
+//     // Prepare fields for the session document
+//     std::vector<FirebaseField> sessionFields{
+//         {"userID", "654321"},
+//         {"date", "SomeTimestampOrValue"},
+//         {"duration", "30"},
+//         {"avgActivity", "75.0"},
+//         {"color", "blue"},
+//         {"intensity", "80"},
+//         {"relaxed", "false"}
+//     };
 
-    // Create the session document (Firestore auto-generates a doc ID)
-    String newSessionDocName = createSessionDocument(sessionFields);
-    if (newSessionDocName.isEmpty()) {
-        Serial.println("Failed to create session document.");
-        return;
-    }
+//     // Create the session document (Firestore auto-generates a doc ID)
+//     String newSessionDocName = createSessionDocument(sessionFields);
+//     if (newSessionDocName.isEmpty()) {
+//         Serial.println("Failed to create session document.");
+//         return;
+//     }
 
-    // Prepare fields for a subcollection document in "minuteLogs"
-    std::vector<FirebaseField> minuteFields{
-        {"minuteIndex", "0"},
-        {"color", "blue"},
-        {"intensity", "80"},
-        {"activity", "85.0"}
-    };
+//     // Prepare fields for a subcollection document in "minuteLogs"
+//     std::vector<FirebaseField> minuteFields{
+//         {"minuteIndex", "0"},
+//         {"color", "blue"},
+//         {"intensity", "80"},
+//         {"activity", "85.0"}
+//     };
 
-    // Create the subcollection document
-    if (!createSubcollectionDocument(newSessionDocName, "minuteLogs", minuteFields)) {
-        Serial.println("Failed to create minuteLogs document.");
-        return;
-    }
+//     // Create the subcollection document
+//     if (!createSubcollectionDocument(newSessionDocName, "minuteLogs", minuteFields)) {
+//         Serial.println("Failed to create minuteLogs document.");
+//         return;
+//     }
 
-    Serial.println("Session doc and minuteLogs doc created successfully.");
-}
+//     Serial.println("Session doc and minuteLogs doc created successfully.");
+// }

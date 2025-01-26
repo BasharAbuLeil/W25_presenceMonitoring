@@ -1,8 +1,11 @@
 #include "espNowFunctions.h"
+#include <iostream>
 #include <vector>
-
+#include <map>
 static std::vector<recivedMessage> g_receivedData;
-
+static std::vector<std::pair<int,double>> mainSample;
+extern unsigned long nextPrint;
+extern unsigned long  printEvery ;
 uint8_t peerAddress[]={0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
 bool espNowSession;
 void setupEspNow() {
@@ -35,6 +38,7 @@ void initSession(){
   esp_err_t result = esp_now_send(peerAddress, (uint8_t *) &s1, sizeof(s1));
    
   if (result == ESP_OK) {
+    nextPrint = millis() + printEvery;
     Serial.println("Sending confirmed");
   }
   else {
@@ -124,3 +128,26 @@ void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingDa
   Serial.println(g_receivedData.size());
 }
 
+void updateMainVector(int packetNum,double avg)
+{
+  mainSample.push_back({packetNum,avg});
+}
+
+void printAllData(){
+  Serial.println("main Data:");
+  for(const std::pair<int,double>&p:mainSample){
+    Serial.print("packetNum:");
+    Serial.println(p.first);
+    Serial.print("avg");
+    Serial.println(p.second);
+  } 
+  Serial.println("slave data");
+  for(const recivedMessage& m:g_receivedData){
+    Serial.print("packetNum:");
+    Serial.println(m.packetNum);
+    Serial.print("avg");
+    Serial.println(m.avg);
+    Serial.print("color");
+    Serial.println(m.col);
+  }
+}

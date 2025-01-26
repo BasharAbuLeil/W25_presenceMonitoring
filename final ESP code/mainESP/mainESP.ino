@@ -1,3 +1,23 @@
+#ifdef ESP32
+#define sensorSerial Serial1
+#define RX_PIN 16
+#define TX_PIN 17
+#define INDICATOR_PIN 2
+#elif defined(ARDUINO_SAMD_NANO_33_IOT)
+#define sensorSerial Serial1
+#else
+#error "This sketch only works on ESP32 or Arduino Nano 33IoT"
+#endif
+#include "MyLD2410.h"
+#define ENHANCED_MODE
+#ifdef DEBUG_MODE
+MyLD2410 sensor(sensorSerial, true);
+#else
+MyLD2410 sensor(sensorSerial);
+#endif
+
+
+
 
 #include <WiFi.h>
 #include "espNowFunctions.h"
@@ -6,7 +26,6 @@
 #include <Keypad.h>
 #include <string>
 #include "fire_store.h"
-
 
 const int BUILT_IN_LED=2;
 const int  ROW_NUM = 4; // four rows
@@ -47,8 +66,25 @@ int value;
 esp_now_peer_info_t peerInfo;
 extern bool espNowSession;
 
-
-
+unsigned long nextPrint = 0, printEvery = 1000;  // print every second
+double movingCounter=0;
+double seconds=0;
+double movingPerc=0;
+int packetNum=0;
+void calcMovementPerc()
+{
+  Serial.print("moving percentage:");
+  movingPerc=movingCounter/seconds;
+  movingPerc=movingPerc/0.8;
+  if(movingPerc>1){
+  Serial.print("1.00");
+  }else{
+    Serial.println(movingPerc);
+  }    
+  Serial.println();
+  movingCounter=0;
+  seconds=0;
+}
 void connectToWiFi() {
   getWifiData();
   Serial.println("Connecting to Wi-Fi...");
@@ -65,6 +101,32 @@ void disconnectWiFi() {
   WiFi.mode(WIFI_STA);
   ESP.restart();
   Serial.println("Wi-Fi disconnected.");
+}
+
+void printData() {
+  if (sensor.presenceDetected()) {
+    if (sensor.movingTargetDetected()) {
+      if(seconds>=3){
+        movingCounter++;
+      }
+      digitalWrite(INDICATOR_PIN, HIGH);
+      Serial.print(" MOVING    = ");
+      Serial.print(sensor.movingTargetSignal());
+      Serial.print("@");
+      Serial.print(sensor.movingTargetDistance());
+      Serial.print("cm ");
+     Serial.println();
+    }
+    else{
+      Serial.println("NO MOVEMENT");
+      digitalWrite(INDICATOR_PIN,LOW);
+    }
+  } else {
+    Serial.println("NO MOVEMENT");
+    digitalWrite(INDICATOR_PIN, LOW);
+  }
+  Serial.println();
+  seconds++;
 }
 
 
@@ -120,6 +182,25 @@ void setup() {
   initDisplay();
   initSd();
   setupEspNow();
+  #ifdef ESP32
+  sensorSerial.begin(LD2410_BAUD_RATE, SERIAL_8N1, RX_PIN, TX_PIN);
+#else
+  sensorSerial.begin(LD2410_BAUD_RATE);
+#endif
+  pinMode(INDICATOR_PIN, OUTPUT);
+  delay(2000);
+  if (!sensor.begin()) {
+    display.clearDisplay();
+    display.print("Failed to communicate with the sensor.");
+    display.display();
+    while (true)
+      ;
+  }
+
+#ifdef ENHANCED_MODE
+  sensor.enhancedMode();
+#endif
+
   pinMode(BUILT_IN_LED,OUTPUT);
 }
  
@@ -136,6 +217,7 @@ void loop() {
       delay(1000);
       //exampleUsage();
       //adding fireStoreData 
+      printAllData();
       connectToWiFi();
       if (!initFirestore()) {
       Serial.println("Failed to initialize Firestore.");
@@ -145,11 +227,22 @@ void loop() {
       delay(5000);
       disconnectWiFi();
       setupEspNow();
+      packetNum=0;
+      movingCounter=seconds=0;
+    }
+    else if((sensor.check() == MyLD2410::Response::DATA) && (millis() > nextPrint)){
+      nextPrint = millis() + printEvery;
+      printData();
+      if(seconds>=30){
+        calcMovementPerc();
+        updateMainVector(packetNum,movingPerc);
+        packetNum++;
+      }
     }
   }
   else{
     getId();
-    initSession(); 
+    initSession();
     digitalWrite(BUILT_IN_LED,HIGH);
   }
   delay(100);
