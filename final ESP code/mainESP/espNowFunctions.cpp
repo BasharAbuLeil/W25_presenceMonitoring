@@ -1,5 +1,4 @@
 #include "espNowFunctions.h"
-#include <iostream>
 #include <vector>
 static std::vector<recivedMessage> g_receivedData;
 static std::vector<std::pair<int,double>> mainSample;
