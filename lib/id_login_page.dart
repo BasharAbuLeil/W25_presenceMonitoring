@@ -339,12 +339,19 @@ class _IDLoginPageState extends State<IDLoginPage> {
     }
 
     try {
-      final docSnap = await _firestore.collection('users').doc(enteredID).get();
-      if (!docSnap.exists) {
-        _showErrorDialog('No user found with ID: $enteredID');
+      // Query the sessions collection where userID matches the entered ID
+      final querySnapshot = await _firestore
+          .collection('sessions')
+          .where('userID', isEqualTo: enteredID)
+          .limit(1)  // We only need to check if at least one document exists
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        _showErrorDialog('No sessions found for ID: $enteredID');
         return;
       }
 
+      // If we found matching sessions, navigate to AllTreatmentSessionsPage
       Navigator.push(
         context,
         MaterialPageRoute(
