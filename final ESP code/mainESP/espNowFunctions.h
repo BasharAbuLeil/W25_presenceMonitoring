@@ -39,7 +39,7 @@ typedef struct send_Message{
 void updateMainVector(int packetNum,double avg);
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingData, int len);
-void printAllData();
+void printAllData(String id);
 double max(double d1,double d2);
 // class espInitFailed{}: public espNowExceptions{};;
 

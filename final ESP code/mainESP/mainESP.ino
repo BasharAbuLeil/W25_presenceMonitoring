@@ -24,9 +24,11 @@ MyLD2410 sensor(sensorSerial);
 #include "display.h"
 #include "SD_functions.h"
 #include <Keypad.h>
-#include <string>
 #include "fire_store.h"
 
+extern double avgActivity;
+extern String color;
+extern std::vector<recivedMessage>& receivedData;
 const int BUILT_IN_LED=2;
 const int  ROW_NUM = 4; // four rows
 const int COLUMN_NUM= 4; // four columns
@@ -58,7 +60,7 @@ typedef struct fireStoreData{
 extern Adafruit_SSD1306 display;
 
 
-std::string id;
+String id;
 extern char * passwrod;
 extern char * ssid;
 
@@ -147,7 +149,7 @@ void getId(){
     char key = keypad.getKey();
     if(key){
       if(key=='D'&&counter>0){
-        id.pop_back();
+        id.remove(id.length() - 1);
         counter--;
       }
       else if(key>='0'&&key<='9'){
@@ -217,13 +219,15 @@ void loop() {
       delay(1000);
       //exampleUsage();
       //adding fireStoreData 
-      printAllData();
+      
       connectToWiFi();
       if (!initFirestore()) {
       Serial.println("Failed to initialize Firestore.");
       } else {
         Serial.println("Firestore initialized successfully.");
       }
+      printAllData(id);
+      //uploadDataToFirestore(id,avgActivity,color,receivedData);
       delay(5000);
       disconnectWiFi();
       setupEspNow();

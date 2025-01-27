@@ -141,15 +141,16 @@ void uploadDataToFirestore(
         return;
     }
 
+
     // 2) Build the main session document fields
     //    Instead of assigning our own date/time string, we'll let Firestore 
     //    fill the 'date' field with server time via REQUEST_TIME.
     std::vector<FirebaseField> sessionFields = {
         {"userID", userID},
-        {"date", "REQUEST_TIME"},  // Firestore will store a server timestamp
+        {"date", "createTime"},  // Firestore will store a server timestamp
         {"duration", String(receivedData.size())},
         {"avgActivity", String(avgActivity, 2)}, // e.g. keep 2 decimal places
-        {"color", String(color)}
+        {"color", convertColor(color)}
     };
 
     // 3) Create the session document in Firestore (auto ID)
@@ -167,7 +168,7 @@ void uploadDataToFirestore(
         const recivedMessage& msg = receivedData[i];
         std::vector<FirebaseField> minuteFields = {
             {"minuteIndex", String(msg.packetNum)},
-            {"color", String(msg.col)},
+            {"color", convertColor(msg.col)},
             {"activity", String(msg.avg, 2)}
         };
 
@@ -184,47 +185,11 @@ void uploadDataToFirestore(
 }
 
 
-/**
- * @brief Example usage of creating a session document and a subcollection document.
- */
-// void exampleUsage() {
-//     // Ensure Firestore is initialized before calling this function.
-//     if (!initFirestore()) {
-//         Serial.println("Firestore initialization failed. Cannot continue.");
-//         return;
-//     }
+String convertColor(int i){
+  if(i==1)
+     return "red";
+  else if(i==2)
+     return "green";
+  return "blue";
+}
 
-//     // Prepare fields for the session document
-//     std::vector<FirebaseField> sessionFields{
-//         {"userID", "654321"},
-//         {"date", "SomeTimestampOrValue"},
-//         {"duration", "30"},
-//         {"avgActivity", "75.0"},
-//         {"color", "blue"},
-//         {"intensity", "80"},
-//         {"relaxed", "false"}
-//     };
-
-//     // Create the session document (Firestore auto-generates a doc ID)
-//     String newSessionDocName = createSessionDocument(sessionFields);
-//     if (newSessionDocName.isEmpty()) {
-//         Serial.println("Failed to create session document.");
-//         return;
-//     }
-
-//     // Prepare fields for a subcollection document in "minuteLogs"
-//     std::vector<FirebaseField> minuteFields{
-//         {"minuteIndex", "0"},
-//         {"color", "blue"},
-//         {"intensity", "80"},
-//         {"activity", "85.0"}
-//     };
-
-//     // Create the subcollection document
-//     if (!createSubcollectionDocument(newSessionDocName, "minuteLogs", minuteFields)) {
-//         Serial.println("Failed to create minuteLogs document.");
-//         return;
-//     }
-
-//     Serial.println("Session doc and minuteLogs doc created successfully.");
-// }

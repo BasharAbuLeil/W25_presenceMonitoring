@@ -1,12 +1,15 @@
 #include "espNowFunctions.h"
 #include <vector>
+#include "fire_store.h"
 static std::vector<recivedMessage> g_receivedData;
 static std::vector<std::pair<int,double>> mainSample;
 static std::vector<recivedMessage> finalData;
 extern unsigned long nextPrint;
 extern unsigned long  printEvery ;
 uint8_t peerAddress[]={0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
+static std::vector<int>colorFreq(3,0);
 bool espNowSession;
+double avg=0;
 void setupEspNow() {
   WiFi.mode(WIFI_STA);
 
@@ -44,55 +47,6 @@ void initSession(){
     Serial.println("Sending error");
   }
 
-}
-
-void handleReceivedData()
-{
-    // 1) Check if the vector is empty
-    if (g_receivedData.empty()) {
-        Serial.println("No data in vector");
-        return;
-    }
-
-    // 2) List of possible colors and frequency array
-    String possibleColors[] = {"BLUE", "GREEN", "RED", "BLACK", "WHITE"};
-    const int colorCount = sizeof(possibleColors) / sizeof(possibleColors[0]);
-    int colFrequency[colorCount];
-    
-    // Initialize all frequency counts to 0
-    for (int i = 0; i < colorCount; i++) {
-        colFrequency[i] = 0;
-    }
-
-    // 3) Sum up avg values and track frequency of col
-    double sum = 0.0;
-    for (size_t i = 0; i < g_receivedData.size(); i++) {
-        sum += g_receivedData[i].avg;
-        colFrequency[g_receivedData[i].col-1]++;
-    }
-
-    // 4) Compute overall average
-    double avgActivity = sum / g_receivedData.size();
-
-    // 5) Determine which color has the highest frequency
-    int maxCount = -1;
-    String mostFrequentColor = "UNKNOWN";
-    for (int i = 0; i < colorCount; i++) {
-        if (colFrequency[i] > maxCount) {
-            maxCount = colFrequency[i];
-            mostFrequentColor = possibleColors[i];
-        }
-    }
-
-    // 6) Print or store the results
-    Serial.print("Average Activity (avgActivity): ");
-    Serial.println(avgActivity, 2);
-
-    Serial.print("Most Frequent Color: ");
-    Serial.println(mostFrequentColor);
-
-    // (Optional) Clear g_receivedData if you'd like to reset after processing:
-    // g_receivedData.clear();
 }
 
 void haltSession(){
@@ -138,7 +92,7 @@ void updateMainVector(int packetNum,double avg)
   mainSample.push_back({packetNum,avg});
 }
 
-void printAllData(){
+void printAllData(String id){
   Serial.println("main Data:");
   /*for(const std::pair<int,double>&p:mainSample){
     Serial.print("packetNum:");
@@ -155,6 +109,7 @@ void printAllData(){
     Serial.print("color");
     Serial.println(m.col);
   }*/
+  avg=0;
   recivedMessage finalMsg;
   for(int i=0;i<mainSample.size();i++){
     std::pair<int,double>p=mainSample[i];
@@ -170,9 +125,24 @@ void printAllData(){
     }
     if(found){
       finalMsg.avg=max(avg,finalMsg.avg);
+      avg+=finalMsg.avg;
+      colorFreq[finalMsg.col-1]++;
       finalData.push_back(finalMsg);
     }
+    
   }
+  avg=avg/finalData.size();
+  int maxIndex = 0;
+  int maxValue = colorFreq[0];
+
+    // Loop through the vector to find the maximum value and its index
+  for (int i = 1; i < colorFreq.size(); i++) {
+      if (colorFreq[i] > maxValue) {
+          maxValue = colorFreq[i];
+          maxIndex = i;
+      }
+  }
+  uploadDataToFirestore(id,avg,maxIndex+1,finalData);
   for(int i=0;i<finalData.size();i++){
     Serial.print("packetNum:");
     Serial.println(finalData[i].packetNum);
@@ -181,8 +151,8 @@ void printAllData(){
     Serial.print("color");
     Serial.println(finalData[i].col);
   }
-}
 
+}
 
 double max(double d1,double d2){
   return d1>d2? d1:d2;
