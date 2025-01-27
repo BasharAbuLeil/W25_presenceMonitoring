@@ -2,6 +2,7 @@
 #include <vector>
 static std::vector<recivedMessage> g_receivedData;
 static std::vector<std::pair<int,double>> mainSample;
+static std::vector<recivedMessage> finalData;
 extern unsigned long nextPrint;
 extern unsigned long  printEvery ;
 uint8_t peerAddress[]={0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
@@ -67,14 +68,7 @@ void handleReceivedData()
     double sum = 0.0;
     for (size_t i = 0; i < g_receivedData.size(); i++) {
         sum += g_receivedData[i].avg;
-
-        // Look for which color matches msg.col
-        for (int j = 0; j < colorCount; j++) {
-            if (g_receivedData[i].col == possibleColors[j]) {
-                colFrequency[j]++;
-                break; // Exit once a match is found
-            }
-        }
+        colFrequency[g_receivedData[i].col-1]++;
     }
 
     // 4) Compute overall average
@@ -146,7 +140,7 @@ void updateMainVector(int packetNum,double avg)
 
 void printAllData(){
   Serial.println("main Data:");
-  for(const std::pair<int,double>&p:mainSample){
+  /*for(const std::pair<int,double>&p:mainSample){
     Serial.print("packetNum:");
     Serial.println(p.first);
     Serial.print("avg");
@@ -160,5 +154,36 @@ void printAllData(){
     Serial.println(m.avg);
     Serial.print("color");
     Serial.println(m.col);
+  }*/
+  recivedMessage finalMsg;
+  for(int i=0;i<mainSample.size();i++){
+    std::pair<int,double>p=mainSample[i];
+    int packetNum=p.first;
+    int avg=p.second;
+    bool found =false;
+    for(int j=0;j<g_receivedData.size();j++){
+      if(g_receivedData[j].packetNum==packetNum){
+        found=true;
+        finalMsg=g_receivedData[i];
+        break;
+      }
+    }
+    if(found){
+      finalMsg.avg=max(avg,finalMsg.avg);
+      finalData.push_back(finalMsg);
+    }
   }
+  for(int i=0;i<finalData.size();i++){
+    Serial.print("packetNum:");
+    Serial.println(finalData[i].packetNum);
+    Serial.print("avg");
+    Serial.println(finalData[i].avg);
+    Serial.print("color");
+    Serial.println(finalData[i].col);
+  }
+}
+
+
+double max(double d1,double d2){
+  return d1>d2? d1:d2;
 }
