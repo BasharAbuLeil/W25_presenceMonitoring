@@ -27,33 +27,33 @@ String dataBaseUrl;
  * }
  *
  * For simplicity, all fields here are set as strings. If you need numeric or
- * boolean values, adjust accordingly (e.g. integerValue, booleanValue).
+ * boolean values, adjust accordiingly (e.g. integerValue, booleanValue).
  */
 void buildFirestoreJson(FirebaseJson &json, const std::vector<FirebaseField> &fields) {
     for (const auto &field : fields) {
-        // Common path prefix for each field
-        String path = "fields/" + field.key + "/";
-
-        // Check the key to determine which Firestore data type to use
+        String path;
+        
+        // Handle different field types based on field name
         if (field.key == "duration" || field.key == "minuteIndex") {
-            // Store integer fields
-            path += "integerValue";
-            json.set(path, field.value);
+            // Integer fields
+            path = "fields/" + field.key + "/integerValue";
+            json.set(path, field.value.toInt());
         }
         else if (field.key == "avgActivity" || field.key == "activity") {
-            // Store as double
-            path += "doubleValue";
-            json.set(path, field.value);
+            // Double/float fields
+            path = "fields/" + field.key + "/doubleValue";
+            json.set(path, field.value.toDouble());
         }
         else if (field.key == "date") {
-            // Store as timestamp; here we use "REQUEST_TIME" to let Firestore write a server timestamp
-            path += "timestampValue";
-            // If you have an actual timestamp string, replace "REQUEST_TIME" with the proper RFC3339 date string
-            json.set(path, field.value);
+            // Timestamp field - we'll keep using REQUEST_TIME
+            if (field.value == "REQUEST_TIME") {
+                path = "fields/" + field.key + "/timestampValue";
+                json.set(path, "REQUEST_TIME");
+            }
         }
         else {
-            // Default to stringValue (e.g., userID, color)
-            path += "stringValue";
+            // String fields (userID, color, and any other fields)
+            path = "fields/" + field.key + "/stringValue";
             json.set(path, field.value);
         }
     }
@@ -168,9 +168,9 @@ void uploadDataToFirestore(
     //    fill the 'date' field with server time via REQUEST_TIME.
     std::vector<FirebaseField> sessionFields = {
         {"userID", userID},
-        {"date", "createTime"},  // Firestore will store a server timestamp
+        {"date", "2025-01-26T14:30:00Z"},  // Firestore will store a server timestamp
         {"duration", String(receivedData.size())},
-        {"avgActivity", String(avgActivity, 2)}, // e.g. keep 2 decimal places
+        {"avgActivity", String(avgActivity)}, // e.g. keep 2 decimal places
         {"color", convertColor(color)}
     };
 
@@ -181,7 +181,6 @@ void uploadDataToFirestore(
         return;
     }
     Serial.println("Session doc created successfully.");
-
     // 4) For each entry in g_receivedData, create a subcollection document
     //    with the fields minuteIndex, color, activity.
     //    (You can add more fields as needed.)

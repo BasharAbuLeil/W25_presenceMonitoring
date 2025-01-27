@@ -9,7 +9,7 @@ extern unsigned long  printEvery ;
 uint8_t peerAddress[]={0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
 static std::vector<int>colorFreq(3,0);
 bool espNowSession;
-double avg=0;
+
 void setupEspNow() {
   WiFi.mode(WIFI_STA);
 
@@ -109,7 +109,7 @@ void printAllData(String id){
     Serial.print("color");
     Serial.println(m.col);
   }*/
-  avg=0;
+  double sum=0;
   recivedMessage finalMsg;
   for(int i=0;i<mainSample.size();i++){
     std::pair<int,double>p=mainSample[i];
@@ -124,14 +124,14 @@ void printAllData(String id){
       }
     }
     if(found){
-      finalMsg.avg=max(avg,finalMsg.avg);
-      avg+=finalMsg.avg;
+      finalMsg.avg=max(avg,finalMsg.avg)*100;
+      sum+=finalMsg.avg;
       colorFreq[finalMsg.col-1]++;
       finalData.push_back(finalMsg);
     }
     
   }
-  avg=avg/finalData.size();
+  sum=sum/(double)(finalData.size());
   int maxIndex = 0;
   int maxValue = colorFreq[0];
 
@@ -142,7 +142,7 @@ void printAllData(String id){
           maxIndex = i;
       }
   }
-  uploadDataToFirestore(id,avg,maxIndex+1,finalData);
+  uploadDataToFirestore(id,sum,maxIndex+1,finalData);
   for(int i=0;i<finalData.size();i++){
     Serial.print("packetNum:");
     Serial.println(finalData[i].packetNum);
