@@ -45,10 +45,8 @@ void buildFirestoreJson(FirebaseJson &json, const std::vector<FirebaseField> &fi
             json.set(path, field.value.toDouble());
         }
         else if (field.key == "date") {
-            // Timestamp field - we'll keep using REQUEST_TIME
-            if (field.value == "REQUEST_TIME") {
-                path = "fields/" + field.key + "/timestampValue";
-                json.set(path, "REQUEST_TIME");
+            path = "fields/" + field.key + "/serverTimestampValue"; // Correct path for serverTimestamp
+            json.set(path, FirebaseJson::JSON_NULL); // Value should be JSON null for serverTimestamp
             }
         }
         else {
@@ -168,7 +166,7 @@ void uploadDataToFirestore(
     //    fill the 'date' field with server time via REQUEST_TIME.
     std::vector<FirebaseField> sessionFields = {
         {"userID", userID},
-        {"date", "2025-01-26T14:30:00Z"},  // Firestore will store a server timestamp
+        {"date", "serverTimestamp"},  // Firestore will store a server timestamp
         {"duration", String(receivedData.size())},
         {"avgActivity", String(avgActivity)}, // e.g. keep 2 decimal places
         {"color", convertColor(color)}
