@@ -21,35 +21,30 @@ String dataBaseUrl;
  * @brief Helper function to build Firestore JSON in the format:
  * {
  *   "fields": {
- *     "someKey": { "stringValue": "someValue" },
+ *     "someKey": { "someType": "someValue" },
  *     ...
  *   }
  * }
  *
- * For simplicity, all fields here are set as strings. If you need numeric or
- * boolean values, adjust accordiingly (e.g. integerValue, booleanValue).
  */
 void buildFirestoreJson(FirebaseJson &json, const std::vector<FirebaseField> &fields) {
     for (const auto &field : fields) {
         String path;
-        
+
         // Handle different field types based on field name
         if (field.key == "duration" || field.key == "minuteIndex") {
             // Integer fields
             path = "fields/" + field.key + "/integerValue";
             json.set(path, field.value.toInt());
-        }
-        else if (field.key == "avgActivity" || field.key == "activity") {
+        } else if (field.key == "avgActivity" || field.key == "activity") {
             // Double/float fields
             path = "fields/" + field.key + "/doubleValue";
             json.set(path, field.value.toDouble());
-        }
-        else if (field.key == "date") {
+        } else if (field.key == "date") {
+            // Timestamp field - use "serverTimestamp" placeholder
             path = "fields/" + field.key + "/serverTimestampValue"; // Correct path for serverTimestamp
             json.set(path, FirebaseJson::JSON_NULL); // Value should be JSON null for serverTimestamp
-            }
-        }
-        else {
+        } else {
             // String fields (userID, color, and any other fields)
             path = "fields/" + field.key + "/stringValue";
             json.set(path, field.value);
@@ -114,15 +109,15 @@ String createSessionDocument(const std::vector<FirebaseField>& fields) {
 /**
  * @brief Create a document in a subcollection (e.g., "minuteLogs") under a given parent document.
  *
- * @param parentDocName Full path of the parent doc, e.g., 
+ * @param parentDocName Full path of the parent doc, e.g.,
  *        "projects/<YOUR_PROJ>/databases/(default)/documents/sessions/<DOC_ID>"
  * @param subcollectionName For example, "minuteLogs"
  * @param fields Vector of FirebaseField for the new subcollection doc
  * @return true on success, false on failure.
  */
 bool createSubcollectionDocument(const String& parentDocName,
-                                 const String& subcollectionName,
-                                 const std::vector<FirebaseField>& fields) {
+    const String& subcollectionName,
+    const std::vector<FirebaseField>& fields) {
     // Extract only the portion after "/documents/" so Firestore can build the correct path.
     String pathPrefix = "/documents/";
     int index = parentDocName.indexOf(pathPrefix);
@@ -162,11 +157,10 @@ void uploadDataToFirestore(
 
 
     // 2) Build the main session document fields
-    //    Instead of assigning our own date/time string, we'll let Firestore 
-    //    fill the 'date' field with server time via REQUEST_TIME.
+    //    Now the 'date' field will be populated with server timestamp.
     std::vector<FirebaseField> sessionFields = {
         {"userID", userID},
-        {"date", "serverTimestamp"},  // Firestore will store a server timestamp
+        {"date", "serverTimestamp"}, // Use "serverTimestamp" to get server time
         {"duration", String(receivedData.size())},
         {"avgActivity", String(avgActivity)}, // e.g. keep 2 decimal places
         {"color", convertColor(color)}
@@ -203,11 +197,10 @@ void uploadDataToFirestore(
 }
 
 
-String convertColor(int i){
-  if(i==1)
-     return "red";
-  else if(i==2)
-     return "green";
-  return "blue";
+String convertColor(int i) {
+    if (i == 1)
+        return "red";
+    else if (i == 2)
+        return "green";
+    return "blue";
 }
-
