@@ -34,47 +34,48 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
   @override
   void initState() {
     super.initState();
-    if (_isSingleDay) {
-      _expandedStart = DateTime(widget.startDate.year, widget.startDate.month, widget.startDate.day, 0, 0, 0);
-      _expandedEnd = DateTime(widget.startDate.year, widget.startDate.month, widget.startDate.day, 23, 59, 59);
-    } else {
-      _expandedStart = widget.startDate;
-      _expandedEnd = widget.endDate;
-    }
+    // Set start time to beginning of day
+    _expandedStart = DateTime(
+        widget.startDate.year,
+        widget.startDate.month,
+        widget.startDate.day,
+        0, 0, 0
+    );
+
+    // Set end time to end of day (23:59:59.999)
+    _expandedEnd = DateTime(
+        widget.endDate.year,
+        widget.endDate.month,
+        widget.endDate.day,
+        23, 59, 59, 999
+    );
   }
 
   void _exportToCsv(List<QueryDocumentSnapshot> sessionDocs) {
     try {
-      // Prepare CSV headers and data
       List<List<dynamic>> rows = [
         [_isSingleDay ? 'Date: ${_formatDate(_expandedStart)}' :
         'Date Range: ${_formatDate(_expandedStart)} - ${_formatDate(_expandedEnd)}'],
-        [], // Empty row for spacing
-        ['Date', 'Time', 'Patient ID', 'Duration (min)', 'Activity (%)', 'Color', 'Relaxed'] // Removed 'Intensity'
+        [],
+        ['Date and Time', 'Patient ID', 'Duration (min)', 'Activity (%)', 'Color', 'Relaxed']
       ];
 
-      // Populate rows from Firestore documents
       for (var doc in sessionDocs) {
         final data = doc.data() as Map<String, dynamic>;
         final Timestamp? dateTs = data['date'];
-
-        // Convert duration and activity to numbers before adding to rows
         final duration = num.tryParse('${data['duration'] ?? 0}') ?? 0;
         final activity = num.tryParse('${data['avgActivity'] ?? 0}') ?? 0;
 
         rows.add([
-          _formatTimestamp(dateTs),
-          data['time'] ?? 'N/A',
+          _formatDateTime(dateTs),
           data['userID'] ?? 'N/A',
-          duration.toString(),  // Convert to string after calculation
-          activity.toString(), // Convert to string after calculation
+          duration.toString(),
+          activity.toString(),
           data['color'] ?? 'N/A',
-          // data['intensity'] ?? 'N/A', // Removed 'Intensity'
           data['relaxed'] == true ? 'Yes' : 'No',
         ]);
       }
 
-      // Calculate averages with proper number conversion
       double avgDuration = 0;
       double avgActivity = 0;
 
@@ -92,22 +93,17 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
         avgActivity = totalActivity / sessionDocs.length;
       }
 
-      // Add summary statistics
-      rows.add([]);  // Empty row for spacing
+      rows.add([]);
       rows.add(['Summary Statistics']);
       rows.add(['Total Sessions', sessionDocs.length.toString()]);
       rows.add(['Average Duration', '${avgDuration.toStringAsFixed(1)} min']);
       rows.add(['Average Activity', '${avgActivity.toStringAsFixed(1)}%']);
 
-      // Convert to CSV
       String csvData = const ListToCsvConverter().convert(rows);
-
-      // Create blob
       final bytes = utf8.encode(csvData);
       final blob = html.Blob([bytes]);
       final url = html.Url.createObjectUrlFromBlob(blob);
 
-      // Create download link with date range in filename
       final fileName = _isSingleDay
           ? 'treatment_history_${_formatDate(_expandedStart)}.csv'
           : 'treatment_history_${_formatDate(_expandedStart)}_to_${_formatDate(_expandedEnd)}.csv';
@@ -116,10 +112,8 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
         ..setAttribute("download", fileName)
         ..click();
 
-      // Clean up
       html.Url.revokeObjectUrl(url);
 
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('CSV file downloaded successfully'),
@@ -262,13 +256,11 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
                                   color: colorScheme.onSurface,
                                 ),
                                 columns: const [
-                                  DataColumn(label: Text('Date')),
-                                  DataColumn(label: Text('Time')),
+                                  DataColumn(label: Text('Date and Time')),
                                   DataColumn(label: Text('ID')),
                                   DataColumn(label: Text('Duration')),
                                   DataColumn(label: Text('Activity')),
                                   DataColumn(label: Text('Color')),
-                                  // DataColumn(label: Text('Intensity')), // Removed 'Intensity' column
                                   DataColumn(label: Text('Relaxed')),
                                   DataColumn(label: Text('View')),
                                 ],
@@ -278,13 +270,11 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
 
                                   return DataRow(
                                     cells: [
-                                      DataCell(Text(_formatTimestamp(dateTs))),
-                                      DataCell(Text('${data['time'] ?? 'N/A'}')),
+                                      DataCell(Text(_formatDateTime(dateTs))),
                                       DataCell(Text('${data['userID'] ?? 'N/A'}')),
                                       DataCell(Text('${data['duration'] ?? 0} min')),
                                       DataCell(Text('${data['avgActivity'] ?? 0}%')),
                                       DataCell(Text('${data['color'] ?? 'N/A'}')),
-                                      // DataCell(Text('${data['intensity'] ?? 'N/A'}')), // Removed 'Intensity' cell
                                       DataCell(Text(data['relaxed'] == true ? 'Yes' : 'No')),
                                       DataCell(
                                         FilledButton.tonal(
@@ -335,10 +325,9 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
     );
   }
 
-  String _formatTimestamp(Timestamp? ts) {
+  String _formatDateTime(Timestamp? ts) {
     if (ts == null) return 'N/A';
-    final date = ts.toDate();
-    return DateFormat('yyyy-MM-dd').format(date);
+    return DateFormat('yyyy-MM-dd HH:mm').format(ts.toDate());
   }
 
   String _formatDate(DateTime date) {
