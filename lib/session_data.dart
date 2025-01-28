@@ -135,9 +135,7 @@ class _SessionDataPageState extends State<SessionDataPage> {
           // Make sure these fields match the ones in your Firestore
           final duration = sessionData['duration'] ?? 0;
           final avgActivity = sessionData['avgActivity'] ?? 0;
-          final isRelaxed = sessionData['relaxed'] == true;
-          final status = isRelaxed ? 'Relaxed' : 'Active';
-
+          final status = avgActivity > 60 ? 'Active' : 'Relaxed';
           // 2. Prepare CSV rows
           //    Note the added summary lines (duration, avgActivity, status)
           List<List<dynamic>> rows = [
@@ -152,11 +150,12 @@ class _SessionDataPageState extends State<SessionDataPage> {
           // 3. Add the minuteLogs subcollection data
           for (var doc in minuteDocs) {
             final logData = doc.data() as Map<String, dynamic>;
+            final activity = (logData['activity'] as num?)?.toDouble() ?? 0;
             rows.add([
               logData['minuteIndex'] ?? '',
               logData['color'] ?? '',
-              '${logData['activity'] ?? ''}%',
-              (logData['relaxed'] == true) ? 'Yes' : 'No',
+              '${activity}%',
+              activity > 60 ? 'No' : 'Yes',
             ]);
           }
 
@@ -497,13 +496,13 @@ class _SessionDataPageState extends State<SessionDataPage> {
                             ),
                             _buildEnhancedInfoCard(
                               'Status',
-                              sessionData?['relaxed'] == true
-                                  ? 'Relaxed'
-                                  : 'Active',
+                              (sessionData?['avgActivity'] ?? 0) > 60
+                                  ? 'Active'
+                                  : 'Relaxed',
                               '',
-                              sessionData?['relaxed'] == true
-                                  ? Icons.brightness_low
-                                  : Icons.directions_run,
+                              (sessionData?['avgActivity'] ?? 0) > 60
+                                  ? Icons.directions_run
+                                  : Icons.brightness_low,
                               textTheme,
                               colorScheme,
                             ),
@@ -588,6 +587,7 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                       rows: minuteDocs.map((doc) {
                                         final logData =
                                         doc.data() as Map<String, dynamic>;
+                                        final activity = (logData['activity'] as num?)?.toDouble() ?? 0;
                                         return DataRow(cells: [
                                           DataCell(
                                               Text('${logData['minuteIndex'] ??
@@ -597,12 +597,8 @@ class _SessionDataPageState extends State<SessionDataPage> {
                                           // DataCell(
                                           //     Text('${logData['intensity'] ??
                                           //         'N/A'}')), // Removed Intensity DataCell
-                                          DataCell(Text(
-                                              '${logData['activity'] ?? 0}%')),
-                                          DataCell(Text(
-                                              logData['relaxed'] == true
-                                                  ? 'Yes'
-                                                  : 'No')),
+                                          DataCell(Text('${activity}%')),
+                                          DataCell(Text(activity > 60 ? 'No' : 'Yes')),
                                         ]);
                                       }).toList(),
                                     ),
