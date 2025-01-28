@@ -71,7 +71,8 @@ An integrated IoT and web-based system for monitoring patient movement and treat
    - Mounting Hardware (assorted)
 
 ## Wiring Diagram
-
+![WhatsApp Image 2025-01-28 at 16 23 54](https://github.com/user-attachments/assets/cdf26f92-8304-4949-aa22-0a607be3dfe6)
+![WhatsApp Image 2025-01-28 at 16 24 07](https://github.com/user-attachments/assets/57a80382-17ab-40de-bd75-d642ea3de1c9)
 
 ### Pin Connections
 1. OLED Display (I2C)
@@ -214,7 +215,7 @@ Clicking "View" on any session shows:
 ## Project Poster
 [Insert poster image here]
 
-## Parameters (parameters.h)
+## Parameters 
 ```cpp
 // Display Configuration
 #define SCREEN_WIDTH 128
@@ -233,7 +234,7 @@ Clicking "View" on any session shows:
 #define SESSION_TIMEOUT 1800  // 30 minutes
 ```
 
-## Secrets Template (secrets_template.h)
+## Secrets Template 
 ```cpp
 // WiFi Configuration
 #define WIFI_SSID ""
