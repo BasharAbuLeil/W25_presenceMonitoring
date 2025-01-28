@@ -9,20 +9,6 @@
 
 
 
-/*class espNow{
-  bool m_isOngoingSession;
-  esp_now_peer_info_t m_peerInfo;
-  uint8_t* m_macAddress;
-  message commands;
-  void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)  ;
-  // void OnDataRecv(const esp_now_recv_info *recv_info, const uint8_t *incomingData, int len) =0;
-public :
-  espNow();
-  void initSession();
-  void haltSession();
-  bool isOngoingSession();
-};*/
-
 void setupEspNow();
 void initSession();
 void haltSession();
@@ -41,6 +27,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status);
 void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingData, int len);
 void printAllData(String id);
 double max(double d1,double d2);
+std::vector<String> convertRecToString(int packNums,const String& userID, double avgActivity, int color, const std::vector<recivedMessage>& receivedData);
 // class espInitFailed{}: public espNowExceptions{};;
 
 

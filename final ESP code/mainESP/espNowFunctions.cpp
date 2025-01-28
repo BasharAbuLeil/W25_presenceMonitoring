@@ -1,14 +1,18 @@
 #include "espNowFunctions.h"
 #include <vector>
 #include "fire_store.h"
+#include "display.h"
+#include "SD_functions.h"
 static std::vector<recivedMessage> g_receivedData;
 static std::vector<std::pair<int,double>> mainSample;
 static std::vector<recivedMessage> finalData;
 extern unsigned long nextPrint;
 extern unsigned long  printEvery ;
+extern Adafruit_SSD1306 display;
 uint8_t peerAddress[]={0x10, 0x06, 0x1C, 0x86, 0xA2, 0x9C};
 static std::vector<int>colorFreq(3,0);
 bool espNowSession;
+extern bool wifiConnected;
 
 void setupEspNow() {
   WiFi.mode(WIFI_STA);
@@ -35,13 +39,17 @@ void setupEspNow() {
 void initSession(){
   sendMessage s1;
   s1.session=false;
-  espNowSession=true;
+  
   // Send message via ESP-NOW
   esp_err_t result = esp_now_send(peerAddress, (uint8_t *) &s1, sizeof(s1));
    
   if (result == ESP_OK) {
     nextPrint = millis() + printEvery;
-    Serial.println("Sending confirmed");
+    espNowSession=true;
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("Session is on going");
+    display.display();
   }
   else {
     Serial.println("Sending error");
@@ -51,17 +59,22 @@ void initSession(){
 
 void haltSession(){
   
- sendMessage s1;
+  sendMessage s1;
   s1.session=false;
-  espNowSession=false;
   // Send message via ESP-NOW
   esp_err_t result = esp_now_send(peerAddress, (uint8_t *) &s1, sizeof(s1));
    
   if (result == ESP_OK) {
-    Serial.println("Sending confirmed");
+    nextPrint = millis() + printEvery;
+    espNowSession=false;
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("Session halted.");
   }
   else {
-    Serial.println("Sending error");
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("Session didn't halt");
   }
 }
 
@@ -94,23 +107,9 @@ void updateMainVector(int packetNum,double avg)
 
 void printAllData(String id){
   Serial.println("main Data:");
-  /*for(const std::pair<int,double>&p:mainSample){
-    Serial.print("packetNum:");
-    Serial.println(p.first);
-    Serial.print("avg");
-    Serial.println(p.second);
-  } 
-  Serial.println("slave data");
-  for(const recivedMessage& m:g_receivedData){
-    Serial.print("packetNum:");
-    Serial.println(m.packetNum);
-    Serial.print("avg");
-    Serial.println(m.avg);
-    Serial.print("color");
-    Serial.println(m.col);
-  }*/
   double sum=0;
   recivedMessage finalMsg;
+  int packetCounter=1;
   for(int i=0;i<mainSample.size();i++){
     std::pair<int,double>p=mainSample[i];
     int packetNum=p.first;
@@ -125,7 +124,12 @@ void printAllData(String id){
     }
     if(found){
       finalMsg.avg=max(avg,finalMsg.avg)*100;
+      if(finalMsg.avg>100){
+        finalMsg.avg=100;
+      }
       sum+=finalMsg.avg;
+      finalMsg.packetNum=packetCounter;
+      packetCounter++;
       colorFreq[finalMsg.col-1]++;
       finalData.push_back(finalMsg);
     }
@@ -142,7 +146,13 @@ void printAllData(String id){
           maxIndex = i;
       }
   }
-  uploadDataToFirestore(id,sum,maxIndex+1,finalData);
+  if(!wifiConnected){
+    std::vector<String>commitedVec=convertRecToString(packetCounter,id,sum,maxIndex+1,finalData);
+    saveSessionToSD(id, commitedVec);
+  }
+  else{
+    uploadDataToFirestore(id,sum,maxIndex+1,finalData);
+  }
   for(int i=0;i<finalData.size();i++){
     Serial.print("packetNum:");
     Serial.println(finalData[i].packetNum);
@@ -153,7 +163,42 @@ void printAllData(String id){
   }
 
 }
+std::vector<String> convertRecToString(int packNums,const String& userID, double avgActivity, int color, const std::vector<recivedMessage>& receivedData) {
+    std::vector<String> result;
+    
+    // Push the basic information
+    result.push_back(userID);  // Fixed typo: userId -> userID
+    result.push_back(String(avgActivity));
+    result.push_back(String(color));
+    result.push_back(String(packNums-1));
+    // Push all received data
+    for (const recivedMessage& m : receivedData) {
+        result.push_back(String(m.avg));
+        result.push_back(String(m.col));
+        result.push_back(String(m.packetNum));
+    }
+    
+    return result;  // Added missing return statement
+}
 
+// Second function: Updating final data from String vector
+// void updateFinalData(const std::vector<String>& vec) {  // Added & and fixed string -> String
+//     finalMsg.clear();  // Assuming finalMsg is a global vector<recivedMessage>
+    
+//     // Get basic information
+//     String id = vec[0];
+//     double avgActivity = vec[1].toDouble();
+//     int color = vec[2].toInt();
+    
+//     // Process the received messages
+//     for (int i = 3; i < vec.size(); i += 3) {  // Changed increment to i += 3
+//         recivedMessage toPush;
+//         toPush.avg = vec[i].toDouble();
+//         toPush.col = vec[i + 1].toInt();
+//         toPush.packetNum = vec[i + 2].toInt();
+//         finalMsg.push_back(toPush);
+//     }
+// }
 double max(double d1,double d2){
   return d1>d2? d1:d2;
 }

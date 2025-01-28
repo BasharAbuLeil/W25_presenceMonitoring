@@ -65,6 +65,7 @@ extern char * passwrod;
 extern char * ssid;
 
 int value;
+bool wifiConnected=false;
 esp_now_peer_info_t peerInfo;
 extern bool espNowSession;
 
@@ -89,17 +90,32 @@ void calcMovementPerc()
 }
 void connectToWiFi() {
   getWifiData();
-  Serial.println("Connecting to Wi-Fi...");
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print("trying to connect to wifi");
+  display.display();
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  int tries=0;
+  while (WiFi.status() != WL_CONNECTED&&tries<20) {
     delay(1000);
     Serial.print(".");
+    tries++;
+  }
+  if(WiFi.status()!=WL_CONNECTED){
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.print("wifi not connected.uploading to SD");
+    display.display();
+  }
+  else{
+    wifiConnected=true;
   }
   Serial.println("\nConnected to Wi-Fi!");
 }
 void disconnectWiFi() {
   Serial.println("Disconnecting Wi-Fi...");
   WiFi.disconnect(true);
+  wifiConnected=false;
   WiFi.mode(WIFI_STA);
   ESP.restart();
   Serial.println("Wi-Fi disconnected.");
@@ -193,6 +209,7 @@ void setup() {
   delay(2000);
   if (!sensor.begin()) {
     display.clearDisplay();
+    display.setCursor(0, 0);
     display.print("Failed to communicate with the sensor.");
     display.display();
     while (true)
@@ -221,7 +238,7 @@ void loop() {
       //adding fireStoreData 
       
       connectToWiFi();
-      if (!initFirestore()) {
+      if (wifiConnected&&!initFirestore()) {
       Serial.println("Failed to initialize Firestore.");
       } else {
         Serial.println("Firestore initialized successfully.");

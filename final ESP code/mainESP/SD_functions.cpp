@@ -26,12 +26,6 @@ void getWifiData(){
         Serial.println(ssid);
         // Serial.print("Password: ");
         Serial.println(password);
-        
-        //Release memory
-        // delete[] ssid;
-        // delete[] password;
-        // ssid = nullptr;
-        // password = nullptr;
     } else {
         // Serial.println("Failed to load Wi-Fi credentials.");
     }
@@ -162,4 +156,138 @@ String readLine(File& myFile) {
   }
 
   return line;  // Return the line without the newline character
+}
+int getNextFileNumber(const String& userID) {
+    File dir = SD.open("/UPLOAD_TO_FIRESTORE");
+    if (!dir) {
+        Serial.println("Failed to open directory");
+        return 1; // Start with 1 if directory doesn't exist
+    }
+
+    int maxNumber = 0;
+    String baseFileName = userID;
+    
+    File entry = dir.openNextFile();
+    while (entry) {
+        String fileName = entry.name();
+        if (fileName.startsWith(userID)) {
+            // Extract number from filename (if any)
+            int underscorePos = fileName.lastIndexOf('_');
+            if (underscorePos != -1) {
+                String numStr = fileName.substring(underscorePos + 1);
+                numStr = numStr.substring(0, numStr.lastIndexOf('.')); // Remove .txt
+                int num = numStr.toInt();
+                maxNumber = max(maxNumber, num);
+            }
+        }
+        entry.close();
+        entry = dir.openNextFile();
+    }
+    dir.close();
+    return maxNumber + 1;
+}
+
+// Modified save function
+bool saveSessionToSD(const String& userID,  
+                    const std::vector<String>& receivedData) {
+  if (!SD.exists("/UPLOAD_TO_FIRESTORE")) {
+        if (!SD.mkdir("/UPLOAD_TO_FIRESTORE")) {
+            Serial.println("Failed to create directory");
+            return false;
+        }
+    }
+
+    String fullPath = String("/UPLOAD_TO_FIRESTORE/") + userID+ ".txt";
+    
+    // Open file with FILE_WRITE flag for writing
+    File file = SD.open(fullPath, FILE_WRITE);  // Using FILE_WRITE instead of 'r'
+    if (!file) {
+        Serial.println("Failed to open file for writing");
+        return false;
+    }
+
+    
+    // Write each element
+    for (const String& data : receivedData) {
+        file.println(data);
+    }
+    
+    file.close();
+    return true;
+}
+
+// The rest of saveDataToSD remains the same
+
+// Function to read data from a specific file
+// bool readSessionFromSD(const char* fileName, 
+//                       String& userID,
+//                       double& avgActivity,
+//                       int& color,
+//                       std::vector<String>& receivedData) {
+    
+//     String fullPath = String("/UPLOAD_TO_FIRESTORE/") + fileName;
+//     File file = SD.open(fullPath, FILE_READ);
+    
+//     if (!file) {
+//         Serial.println("Failed to open file for reading");
+//         return false;
+//     }
+
+//     // Read number of elements
+//     int numElements = file.readStringUntil('\n').toInt();
+//     std::vector<String> loadedData;
+    
+//     // Read all strings
+//     for (int i = 0; i < numElements && file.available(); i++) {
+//         String line = file.readStringUntil('\n');
+//         line.trim(); // Remove any whitespace/newlines
+//         loadedData.push_back(line);
+//     }
+    
+//     file.close();
+
+//     // Parse the loaded data
+//     if (loadedData.size() >= 3) { // Minimum size check
+//         userID = loadedData[0];
+//         avgActivity = loadedData[1].toDouble();
+//         color = loadedData[2].toInt();
+        
+//         // Clear existing received data
+//         receivedData.clear();
+        
+//         // Parse received messages (groups of 3 values)
+//         for (size_t i = 3; i < loadedData.size(); i += 3) {
+//             if (i + 2 < loadedData.size()) {
+//                 recivedMessage msg;
+//                 msg.avg = loadedData[i].toDouble();
+//                 msg.col = loadedData[i + 1].toInt();
+//                 msg.packetNum = loadedData[i + 2].toInt();
+//                 receivedData.push_back(msg);
+//             }
+//         }
+//         return true;
+//     }
+    
+//     return false;
+// }
+
+
+bool deleteFileFromSD(const char* fileName) {
+    // Construct the full path to the file
+    String fullPath = String("/UPLOAD_TO_FIRESTORE/") + fileName;
+    
+    // Check if file exists before attempting to delete
+    if (!SD.exists(fullPath)) {
+        Serial.println("File does not exist: " + fullPath);
+        return false;
+    }
+    
+    // Attempt to delete the file
+    if (SD.remove(fullPath)) {
+        Serial.println("Successfully deleted file: " + fullPath);
+        return true;
+    } else {
+        Serial.println("Failed to delete file: " + fullPath);
+        return false;
+    }
 }
