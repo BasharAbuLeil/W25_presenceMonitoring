@@ -72,7 +72,7 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
           duration.toString(),
           activity.toString(),
           data['color'] ?? 'N/A',
-          data['relaxed'] == true ? 'Yes' : 'No',
+          activity > 60 ? 'No' : 'Yes',
         ]);
       }
 
@@ -275,7 +275,7 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
                                       DataCell(Text('${data['duration'] ?? 0} min')),
                                       DataCell(Text('${data['avgActivity'] ?? 0}%')),
                                       DataCell(Text('${data['color'] ?? 'N/A'}')),
-                                      DataCell(Text(data['relaxed'] == true ? 'Yes' : 'No')),
+                                      DataCell(Text((data['avgActivity'] ?? 0) > 60 ? 'No' : 'Yes')),
                                       DataCell(
                                         FilledButton.tonal(
                                           onPressed: () {
