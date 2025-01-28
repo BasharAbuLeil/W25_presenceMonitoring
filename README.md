@@ -2,7 +2,7 @@
 # Movement Detection and Treatment Monitoring System
 
 ## Project Description
-An integrated IoT and web-based system for monitoring patient movement and treatment sessions. The system uses radar sensing to detect patient movement patterns, stores the data both locally and in the cloud, and provides a web interface for healthcare providers to analyze treatment sessions and patient progress.
+An integrated IoT and web-based system for monitoring patient movement and treatment sessions. The system uses radar sensing to detect patient movement patterns and detects colors through a color sensor, stores the data both locally and in the cloud, and provides a web interface for healthcare providers to analyze treatment sessions and patient progress.
 
 ## Group Members
 - Bashar Abu Leil
