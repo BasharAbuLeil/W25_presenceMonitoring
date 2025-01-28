@@ -146,7 +146,6 @@ class _AllTreatmentSessionsPageState extends State<AllTreatmentSessionsPage> {
 
       double totalDuration = 0;
       double totalActivity = 0;
-
       for (var doc in sessionDocs) {
         final data = doc.data() as Map<String, dynamic>;
         final Timestamp? dateTs = data['date'] as Timestamp?;
@@ -166,7 +165,7 @@ class _AllTreatmentSessionsPageState extends State<AllTreatmentSessionsPage> {
           activity.toString(),
           data['color'] ?? 'N/A',
           // data['intensity'] ?? 'N/A', // Removed 'Intensity'
-          data['relaxed'] == true ? 'Yes' : 'No',
+          activity > 60 ? 'No' : 'Yes',
         ]);
       }
 
@@ -351,8 +350,9 @@ class _AllTreatmentSessionsPageState extends State<AllTreatmentSessionsPage> {
                     for (var doc in sessionDocs) {
                       final data = doc.data() as Map<String, dynamic>;
                       totalDuration += (data['duration'] ?? 0);
-                      totalActivity += (data['avgActivity'] ?? 0);
-                      if (data['relaxed'] == true) relaxedSessions++;
+                      final activity = (data['avgActivity'] ?? 0);
+                      totalActivity += activity;
+                      if (activity <= 60) relaxedSessions++;
                     }
 
                     final avgDuration = totalSessions > 0 ? totalDuration / totalSessions : 0;
@@ -513,7 +513,7 @@ class _AllTreatmentSessionsPageState extends State<AllTreatmentSessionsPage> {
                                             DataCell(Text('${data['avgActivity'] ?? 0}')),
                                             DataCell(Text('${data['color'] ?? 'N/A'}')),
                                             // DataCell(Text('${data['intensity'] ?? 'N/A'}')), // Removed 'Intensity'
-                                            DataCell(Text(data['relaxed'] == true ? 'Yes' : 'No')),
+                                            DataCell(Text((data['avgActivity'] ?? 0) > 60 ? 'No' : 'Yes')),
                                             DataCell(
                                               FilledButton.tonal(
                                                 onPressed: () {
