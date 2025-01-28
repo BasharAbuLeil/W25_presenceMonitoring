@@ -17,34 +17,48 @@ FirebaseConfig config;
 String projectId;
 String dataBaseUrl;
 
+String extractCreateTime(const String& payload) {
+    FirebaseJson payloadJson;
+    FirebaseJsonData resultData;
+    
+    // Parse the payload into a FirebaseJson object
+    payloadJson.setJsonData(payload);
+    
+    // Get the createTime field
+    if (payloadJson.get(resultData, "createTime") && resultData.typeNum == FirebaseJson::JSON_STRING) {
+        return resultData.stringValue;
+    }
+    
+    return ""; // Return empty string if createTime not found or invalid
+}
 /**
  * @brief Helper function to build Firestore JSON in the format:
  * {
  *   "fields": {
- *     "someKey": { "someType": "someValue" },
+ *     "someKey": { "stringValue": "someValue" },
  *     ...
  *   }
  * }
  *
+ * For simplicity, all fields here are set as strings. If you need numeric or
+ * boolean values, adjust accordiingly (e.g. integerValue, booleanValue).
  */
 void buildFirestoreJson(FirebaseJson &json, const std::vector<FirebaseField> &fields) {
     for (const auto &field : fields) {
         String path;
-
+        
         // Handle different field types based on field name
         if (field.key == "duration" || field.key == "minuteIndex") {
             // Integer fields
             path = "fields/" + field.key + "/integerValue";
             json.set(path, field.value.toInt());
-        } else if (field.key == "avgActivity" || field.key == "activity") {
+        }
+        else if (field.key == "avgActivity" || field.key == "activity") {
             // Double/float fields
             path = "fields/" + field.key + "/doubleValue";
             json.set(path, field.value.toDouble());
-        } else if (field.key == "date") {
-            // Timestamp field - use "serverTimestamp" placeholder
-            path = "fields/" + field.key + "/serverTimestampValue"; // Correct path for serverTimestamp
-            json.set(path, FirebaseJson::JSON_NULL); // Value should be JSON null for serverTimestamp
-        } else {
+        }
+        else {
             // String fields (userID, color, and any other fields)
             path = "fields/" + field.key + "/stringValue";
             json.set(path, field.value);
@@ -78,7 +92,7 @@ bool initFirestore() {
  * @param fields Vector of FirebaseField containing key-value pairs for the session document.
  * @return Full path ("name") of the created document on success, or an empty string on failure.
  */
-String createSessionDocument(const std::vector<FirebaseField>& fields) {
+/*String createSessionDocument(const std::vector<FirebaseField>& fields) {
     FirebaseJson json;
     buildFirestoreJson(json, fields);
 
@@ -93,31 +107,88 @@ String createSessionDocument(const std::vector<FirebaseField>& fields) {
         FirebaseJsonData resultData;
         FirebaseJson payloadJson;
         payloadJson.setJsonData(payload);
-
+        String st=extractCreateTime(payload);
+        Serial.println("creating time =");
+        Serial.print(st);
         // "name" holds the full path to the newly created document.
         if (payloadJson.get(resultData, "name") && resultData.typeNum == FirebaseJson::JSON_STRING) {
             String docName = resultData.stringValue;
             Serial.println("Created session doc with name: " + docName);
+            if (updateSessionWithCreateTime(docName, createTime)) {
+                Serial.println("Session updated with create time.");
+            } else {
+                Serial.println("Failed to update session with create time.");
+            }
+
             return docName;
         }
     } else {
         Serial.println("Failed to create session doc: " + fbdo.errorReason());
     }
     return "";
+}*/
+String createSessionDocument(const std::vector<FirebaseField>& fields) {
+    FirebaseJson json;
+    buildFirestoreJson(json, fields);
+
+    // Pass only the collection path so Firestore auto-generates a doc ID.
+    String collectionPath = "sessions";
+
+    // Create the Firestore document
+    if (Firebase.Firestore.createDocument(&fbdo, projectId, "(default)", collectionPath, json.raw())) {
+        String payload = fbdo.payload().c_str();
+        Serial.println("Session creation payload: " + payload);
+
+        // Extract the creation time
+        String creationTime = extractCreateTime(payload);
+        Serial.println("Creation time: " + creationTime);
+
+        FirebaseJsonData resultData;
+        FirebaseJson payloadJson;
+        payloadJson.setJsonData(payload);
+
+        // Get the document name from Firestore response
+        String docName;
+        if (payloadJson.get(resultData, "name") && resultData.typeNum == FirebaseJson::JSON_STRING) {
+            docName = resultData.stringValue;
+
+            // Construct the update JSON with correct Firestore structure
+            FirebaseJson updateJson;
+            // Modified this part to use correct Firestore field structure
+            updateJson.set("fields/date/timestampValue", creationTime);
+            
+            // Extract the relative document path from the full document name
+            String relativeDocPath = docName.substring(docName.indexOf("/documents/") + 11);
+
+            // Update the document with the creation time
+            if (Firebase.Firestore.patchDocument(&fbdo, projectId, "(default)", relativeDocPath, updateJson.raw(), "date")) {
+                Serial.println("Added creation time to document.");
+                return docName;
+            } else {
+                Serial.println("Failed to add creation time: " + fbdo.errorReason());
+                return docName; // Still return the document name even if patching fails
+            }
+        }
+    } else {
+        Serial.println("Failed to create session document: " + fbdo.errorReason());
+    }
+    return "";
 }
+
+
 
 /**
  * @brief Create a document in a subcollection (e.g., "minuteLogs") under a given parent document.
  *
- * @param parentDocName Full path of the parent doc, e.g.,
+ * @param parentDocName Full path of the parent doc, e.g., 
  *        "projects/<YOUR_PROJ>/databases/(default)/documents/sessions/<DOC_ID>"
  * @param subcollectionName For example, "minuteLogs"
  * @param fields Vector of FirebaseField for the new subcollection doc
  * @return true on success, false on failure.
  */
 bool createSubcollectionDocument(const String& parentDocName,
-    const String& subcollectionName,
-    const std::vector<FirebaseField>& fields) {
+                                 const String& subcollectionName,
+                                 const std::vector<FirebaseField>& fields) {
     // Extract only the portion after "/documents/" so Firestore can build the correct path.
     String pathPrefix = "/documents/";
     int index = parentDocName.indexOf(pathPrefix);
@@ -157,10 +228,10 @@ void uploadDataToFirestore(
 
 
     // 2) Build the main session document fields
-    //    Now the 'date' field will be populated with server timestamp.
+    //    Instead of assigning our own date/time string, we'll let Firestore 
+    //    fill the 'date' field with server time via REQUEST_TIME.
     std::vector<FirebaseField> sessionFields = {
         {"userID", userID},
-        {"date", "serverTimestamp"}, // Use "serverTimestamp" to get server time
         {"duration", String(receivedData.size())},
         {"avgActivity", String(avgActivity)}, // e.g. keep 2 decimal places
         {"color", convertColor(color)}
@@ -197,10 +268,16 @@ void uploadDataToFirestore(
 }
 
 
-String convertColor(int i) {
-    if (i == 1)
-        return "red";
-    else if (i == 2)
-        return "green";
-    return "blue";
+String convertColor(int i){
+  if(i==1)
+     return "red";
+  else if(i==2)
+     return "green";
+  return "blue";
 }
+
+
+
+
+
+
