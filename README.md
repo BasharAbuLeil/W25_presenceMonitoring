@@ -162,6 +162,19 @@ The web interface allows healthcare providers to:
 ## Overview
 This web application helps track and manage treatment sessions for patients. It provides features for viewing individual patient histories and accessing global treatment data across different date ranges.
 
+## Relax Field Definition
+In our project, we define the "Relax" field to indicate whether the patient is in a relaxed state based on their activity level. The value of this field is determined as follows:
+"Yes" → If the activity level is below 60%.
+"No" → If the activity level is 60% or higher.
+
+## Activity Level Measurement
+The activity level is calculated by monitoring patient motion over a 60-second interval using the two LD2410 radar sensors. The process is as follows:
+
+Every second, each motion sensor detects whether movement has occurred (binary: motion detected or no motion).
+We count the total number of motion detections (peaks) over 60 seconds for each sensor.
+The final activity level is determined by taking the maximum count between the two sensors.
+This approach ensures that we capture the highest level of movement in the room, making our monitoring system more reliable in detecting patient activity.
+
 ## Getting Started
 
 ### Login
