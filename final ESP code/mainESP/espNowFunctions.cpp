@@ -45,11 +45,7 @@ void initSession(){
    
   if (result == ESP_OK) {
     nextPrint = millis() + printEvery;
-    espNowSession=true;
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.print("Session is on going");
-    display.display();
+    
   }
   else {
     Serial.println("Sending error");
@@ -82,6 +78,29 @@ void haltSession(){
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  if(status==ESP_NOW_SEND_SUCCESS){
+    if(espNowSession){
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.print("Session halted");
+      display.display();
+      espNowSession=false;
+    }
+    else{
+      nextPrint = millis() + printEvery;
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.print("Session is on going");
+      display.display();
+      espNowSession=true;
+    }
+  }
+  else{
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("Session status unchaged.");
+    display.display();
+  }
 }
 
 
@@ -161,6 +180,10 @@ void printAllData(String id){
     Serial.print("color");
     Serial.println(finalData[i].col);
   }
+  if(wifiConnected){
+    processBackupFiles();  
+  }
+  
 
 }
 std::vector<String> convertRecToString(int packNums,const String& userID, double avgActivity, int color, const std::vector<recivedMessage>& receivedData) {
@@ -181,24 +204,93 @@ std::vector<String> convertRecToString(int packNums,const String& userID, double
     return result;  // Added missing return statement
 }
 
-// Second function: Updating final data from String vector
-// void updateFinalData(const std::vector<String>& vec) {  // Added & and fixed string -> String
-//     finalMsg.clear();  // Assuming finalMsg is a global vector<recivedMessage>
+void updateFinalData(const std::vector<String>& vec) {
+    if(vec.empty()) {
+        Serial.println("Empty vector provided");
+        return;
+    }
+
+    finalData.clear();
     
-//     // Get basic information
-//     String id = vec[0];
-//     double avgActivity = vec[1].toDouble();
-//     int color = vec[2].toInt();
-    
-//     // Process the received messages
-//     for (int i = 3; i < vec.size(); i += 3) {  // Changed increment to i += 3
-//         recivedMessage toPush;
-//         toPush.avg = vec[i].toDouble();
-//         toPush.col = vec[i + 1].toInt();
-//         toPush.packetNum = vec[i + 2].toInt();
-//         finalMsg.push_back(toPush);
-//     }
-// }
+    int i = 0;
+    int pseudoIndex = 0;
+    int procPackets = 0;
+    double avgActivity ;
+    int color;
+    int packNums;
+    recivedMessage toCommit;
+    String id;
+
+    while(i < vec.size()) {
+        // Check for complete header
+        if(pseudoIndex == 0) {
+            if(i + 3 >= vec.size()) {
+                Serial.println("Incomplete header data");
+                break;
+            }
+            
+            // Store header info (with error checking)
+            id = vec[i];
+            avgActivity = vec[i+1].toDouble();
+            color = vec[i+2].toInt();
+            packNums = vec[i+3].toInt();
+            
+            if(isnan(avgActivity)) {
+                Serial.println("Invalid activity value");
+                break;
+            }
+            
+            pseudoIndex += 4;
+            i += 4;
+        }
+
+        // Process received messages with bounds checking
+        while(procPackets < packNums && i < vec.size()) {
+            if(pseudoIndex % 3 == 1) {
+                double avg = vec[i].toDouble();
+                if(!isnan(avg)) {
+                    toCommit.avg = avg;
+                } else {
+                    Serial.println("Invalid avg value");
+                    break;
+                }
+            }
+            else if(pseudoIndex % 3 == 2) {
+                toCommit.col = vec[i].toInt();
+            }
+            else {
+                toCommit.packetNum = vec[i].toInt();
+                finalData.push_back(toCommit);
+                procPackets++;
+            }
+            i++;
+            pseudoIndex++;
+        }
+
+        // Reset for next record if complete
+        if(procPackets == packNums) {
+            pseudoIndex = 0;
+            procPackets = 0;
+            Serial.println("------processing------");
+            Serial.print("id:");
+            Serial.println(id);
+            Serial.print("avg:");
+            Serial.println(avgActivity);
+            Serial.print("color:");
+            Serial.println(color);
+            for(int i=0;i<finalData.size();i++){
+              Serial.print("packetNum:");
+              Serial.println(finalData[i].packetNum);
+              Serial.print("avg");
+              Serial.println(finalData[i].avg);
+              Serial.print("color");
+              Serial.println(finalData[i].col);
+            }
+            Serial.println("------end processing------");
+            uploadDataToFirestore(id,avgActivity,color,finalData);
+        }
+    }
+}
 double max(double d1,double d2){
   return d1>d2? d1:d2;
 }

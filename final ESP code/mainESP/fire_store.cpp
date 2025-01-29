@@ -8,6 +8,7 @@
 
 
 extern std::vector<recivedMessage> g_receivedData;
+extern Adafruit_SSD1306 display;
 extern String id;        // user ID captured from mainESP
 
 // Global Firebase objects (adjust as needed)
@@ -86,47 +87,6 @@ bool initFirestore() {
     }
 }
 
-/**
- * @brief Create a session document in the "sessions" collection with a random Firestore-generated document ID.
- *
- * @param fields Vector of FirebaseField containing key-value pairs for the session document.
- * @return Full path ("name") of the created document on success, or an empty string on failure.
- */
-/*String createSessionDocument(const std::vector<FirebaseField>& fields) {
-    FirebaseJson json;
-    buildFirestoreJson(json, fields);
-
-    // Pass only the collection path so Firestore auto-generates a doc ID.
-    String collectionPath = "sessions";
-
-    if (Firebase.Firestore.createDocument(&fbdo, projectId, "(default)", collectionPath, json.raw())) {
-        // Retrieve the "name" field from Firestore's response payload.
-        String payload = fbdo.payload().c_str();
-        Serial.println("Session creation payload: " + payload);
-
-        FirebaseJsonData resultData;
-        FirebaseJson payloadJson;
-        payloadJson.setJsonData(payload);
-        String st=extractCreateTime(payload);
-        Serial.println("creating time =");
-        Serial.print(st);
-        // "name" holds the full path to the newly created document.
-        if (payloadJson.get(resultData, "name") && resultData.typeNum == FirebaseJson::JSON_STRING) {
-            String docName = resultData.stringValue;
-            Serial.println("Created session doc with name: " + docName);
-            if (updateSessionWithCreateTime(docName, createTime)) {
-                Serial.println("Session updated with create time.");
-            } else {
-                Serial.println("Failed to update session with create time.");
-            }
-
-            return docName;
-        }
-    } else {
-        Serial.println("Failed to create session doc: " + fbdo.errorReason());
-    }
-    return "";
-}*/
 String createSessionDocument(const std::vector<FirebaseField>& fields) {
     FirebaseJson json;
     buildFirestoreJson(json, fields);
@@ -264,7 +224,12 @@ void uploadDataToFirestore(
         }
     }
 
-    Serial.println("Firestore upload complete.");
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println(" upload complete of id ");
+  display.print(id.c_str());
+  display.display();
+  delay(2000);
 }
 
 

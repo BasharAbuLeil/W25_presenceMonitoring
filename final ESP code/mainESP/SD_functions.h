@@ -19,4 +19,6 @@ void readFireBaseCredentials(FirebaseData &fbdo,FirebaseAuth& auth,FirebaseConfi
 String readLine(File& myFile);
 bool deleteFileFromSD(const char* fileName);
 bool saveSessionToSD(const String& userID,  const std::vector<String>& receivedData);
+void processBackupFiles();
+std::vector<String> readFileToVector(const char* filePath);
 #endif

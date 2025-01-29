@@ -109,8 +109,11 @@ void connectToWiFi() {
   }
   else{
     wifiConnected=true;
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.print("Connected to Wi-Fi!");
+    display.display();
   }
-  Serial.println("\nConnected to Wi-Fi!");
 }
 void disconnectWiFi() {
   Serial.println("Disconnecting Wi-Fi...");

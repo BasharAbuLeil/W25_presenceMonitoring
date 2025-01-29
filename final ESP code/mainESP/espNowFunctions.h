@@ -28,6 +28,7 @@ void onDataReceive(const esp_now_recv_info *recv_info, const uint8_t *incomingDa
 void printAllData(String id);
 double max(double d1,double d2);
 std::vector<String> convertRecToString(int packNums,const String& userID, double avgActivity, int color, const std::vector<recivedMessage>& receivedData);
+void updateFinalData(const std::vector<String>& vec);
 // class espInitFailed{}: public espNowExceptions{};;
 
 

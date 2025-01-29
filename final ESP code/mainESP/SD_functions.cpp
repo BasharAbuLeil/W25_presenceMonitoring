@@ -1,5 +1,6 @@
 #include "sd_functions.h"
 #include "display.h"
+#include "espNowFunctions.h"
 // #include "credentials.h"
 
 extern Adafruit_SSD1306 display;
@@ -9,14 +10,22 @@ char* ssid = nullptr;
 char* password = nullptr;
 
 void initSd(){
-    if(!SD.begin(SD_CS_PIN)) {
+    const int RETRY_DELAY = 1000;  // Delay between retries in milliseconds
+
+    while (!SD.begin(SD_CS_PIN)) {
         display.clearDisplay();
-        display.print("Card Mount Failed!");
+        display.setCursor(0, 0);
+        display.print("SD Init Failed!");
+        display.print("\nRetry ");
+        display.print("/");
         display.display();
-        while (true) {
-          
-        }
+        
+        delay(RETRY_DELAY);
     }
+
+    display.clearDisplay();
+    display.print("SD Card Ready!");
+    display.display();
 }
 
 void getWifiData(){
@@ -216,65 +225,82 @@ bool saveSessionToSD(const String& userID,
     return true;
 }
 
-// The rest of saveDataToSD remains the same
+void  processBackupFiles() {
+    File dir = SD.open("/UPLOAD_TO_FIRESTORE");
+    if (!dir) {
+        Serial.println("Failed to open UPLOAD_TO_FIRESTORE directory");
+        return ;
+    }
 
-// Function to read data from a specific file
-// bool readSessionFromSD(const char* fileName, 
-//                       String& userID,
-//                       double& avgActivity,
-//                       int& color,
-//                       std::vector<String>& receivedData) {
-    
-//     String fullPath = String("/UPLOAD_TO_FIRESTORE/") + fileName;
-//     File file = SD.open(fullPath, FILE_READ);
-    
-//     if (!file) {
-//         Serial.println("Failed to open file for reading");
-//         return false;
-//     }
+    bool anyFileProcessed = false;
+    File entry = dir.openNextFile();
+    String fullPath ;
+    while (entry) {
+        String fileName = entry.name();
+        // Check if it's a .txt file
+        if(!fileName.startsWith("._")){
+          Serial.print("Processing file: ");
+          Serial.println(fileName);
+          
+          // Close the file entry before processing to avoid conflicts
+          entry.close();
+          // Get full path
+          fullPath = "/UPLOAD_TO_FIRESTORE/" + fileName;
+          Serial.print("processed file=");
+          Serial.println(fullPath);
+          // Call your foo function here
+          //foo(fullPath);  // You'll implement this function
+          std::vector<String> commitedVec=readFileToVector(fullPath.c_str());
+          updateFinalData(commitedVec);
+          // Get next file
+        }
+        entry = dir.openNextFile();
+        deleteFileFromSD(fullPath.c_str());
+    }
 
-//     // Read number of elements
-//     int numElements = file.readStringUntil('\n').toInt();
-//     std::vector<String> loadedData;
+    dir.close();
     
-//     // Read all strings
-//     for (int i = 0; i < numElements && file.available(); i++) {
-//         String line = file.readStringUntil('\n');
-//         line.trim(); // Remove any whitespace/newlines
-//         loadedData.push_back(line);
-//     }
+    if (!anyFileProcessed) {
+        Serial.println("No .txt files found in UPLOAD_TO_FIRESTORE");
+    }
     
-//     file.close();
+    return ;
+}
 
-//     // Parse the loaded data
-//     if (loadedData.size() >= 3) { // Minimum size check
-//         userID = loadedData[0];
-//         avgActivity = loadedData[1].toDouble();
-//         color = loadedData[2].toInt();
-        
-//         // Clear existing received data
-//         receivedData.clear();
-        
-//         // Parse received messages (groups of 3 values)
-//         for (size_t i = 3; i < loadedData.size(); i += 3) {
-//             if (i + 2 < loadedData.size()) {
-//                 recivedMessage msg;
-//                 msg.avg = loadedData[i].toDouble();
-//                 msg.col = loadedData[i + 1].toInt();
-//                 msg.packetNum = loadedData[i + 2].toInt();
-//                 receivedData.push_back(msg);
-//             }
-//         }
-//         return true;
-//     }
-    
-//     return false;
-// }
 
+std::vector<String> readFileToVector(const char* filePath) {
+    std::vector<String> lines;
+    
+    File file = SD.open(filePath, FILE_READ);
+    if (!file) {
+        Serial.print("Failed to open file: ");
+        Serial.println(filePath);
+        return lines;  // Return empty vector if file can't be opened
+    }
+
+    // Read file line by line
+    while (file.available()) {
+        String line = file.readStringUntil('\n');
+        line.trim();  // Remove any whitespace and newline characters
+        if (line.length() > 0) {  // Only add non-empty lines
+            lines.push_back(line);
+        }
+    }
+
+    file.close();
+
+    // Optional: Print debug information
+    Serial.print("Read ");
+    Serial.print(lines.size());
+    Serial.print(" lines from file: ");
+    Serial.println(filePath);
+
+    return lines;
+}
 
 bool deleteFileFromSD(const char* fileName) {
     // Construct the full path to the file
-    String fullPath = String("/UPLOAD_TO_FIRESTORE/") + fileName;
+    String fullPath =  fileName;
     
     // Check if file exists before attempting to delete
     if (!SD.exists(fullPath)) {
