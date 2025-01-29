@@ -5,7 +5,9 @@
 An integrated IoT and web-based system for monitoring patient movement and treatment sessions. The system consists of two ESP32 devices:
 
 Main ESP32 – Connected to a motion sensor, a keypad, and an OLED display. This device allows the nurse to input the patient's ID and monitors their activity. It is also responsible for connecting to WiFi and uploading collected data to Firestore.
+
 Slave ESP32 – Connected to another motion sensor and a color sensor. This device monitors the patient’s movement and the colors in the room.
+
 The two ESP32 devices communicate using the ESP-NOW protocol, allowing real-time data transfer. By using two motion sensors, we ensure better coverage of the Snoezelen room, which contains multiple interactive devices for therapy. The collected data is stored both locally and in the cloud, enabling healthcare providers to analyze patient activity and response to different room colors through the web interface.
 
 ## Group Members
