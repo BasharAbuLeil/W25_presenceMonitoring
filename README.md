@@ -55,11 +55,11 @@ The two ESP32 devices communicate using the ESP-NOW protocol, allowing real-time
 
 ### Required Components
 1. Main Controller
-   - ESP32 Development Board (×1)
-   - USB-C Cable for programming (×1)
+   - ESP32 Development Board (×2)
+   - USB-C Cable for programming (×2)
 
 2. Sensors and Display
-   - LD2410 Radar Sensor (×1)
+   - LD2410 Radar Sensor (×2)
    - SSD1306 OLED Display 128×32 (×1)
    - 4×4 Matrix Keypad (×1)
 
@@ -73,7 +73,7 @@ The two ESP32 devices communicate using the ESP-NOW protocol, allowing real-time
 
 5. Miscellaneous
    - Jumper Wires (×20)
-   - Project Box/Enclosure (×1)
+   - Project Box/Enclosure (×2)
    - Mounting Hardware (assorted)
 
 ## Wiring Diagram
