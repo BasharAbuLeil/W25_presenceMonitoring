@@ -84,7 +84,7 @@ This microcontroller serves as the core of the system and is responsible for:
 2. Slave ESP32 (Secondary Unit)
 This unit assists in improving motion detection accuracy and environment monitoring. It is responsible for:
 - Monitoring additional movement using a second LD2410 radar sensor.
-- Detecting light conditions in the room using a TCS3200 color sensor.
+- Detecting light conditions in the room using a TCS230 color sensor.
 - Sending sensor data to the Main ESP32 via ESP-NOW.
 
 ## Wiring Diagram
