@@ -24,6 +24,8 @@ class GlobalHistoryPage extends StatefulWidget {
 
 class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchId = '';
 
   late DateTime _expandedStart;
   late DateTime _expandedEnd;
@@ -34,7 +36,6 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
   @override
   void initState() {
     super.initState();
-    // Set start time to beginning of day
     _expandedStart = DateTime(
         widget.startDate.year,
         widget.startDate.month,
@@ -42,13 +43,18 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
         0, 0, 0
     );
 
-    // Set end time to end of day (23:59:59.999)
     _expandedEnd = DateTime(
         widget.endDate.year,
         widget.endDate.month,
         widget.endDate.day,
         23, 59, 59, 999
     );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _exportToCsv(List<QueryDocumentSnapshot> sessionDocs) {
@@ -182,32 +188,121 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
-              elevation: 2,
-              color: colorScheme.surfaceVariant,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-                child: Column(
-                  children: [
-                    Text(
-                      _isSingleDay ? 'Selected Date' : 'Date Range',
-                      style: textTheme.titleMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
+            Row(
+              children: [
+                Expanded(
+                  child: Card(
+                    elevation: 2,
+                    color: colorScheme.surfaceVariant,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            _isSingleDay ? 'Selected Date' : 'Date Range',
+                            style: textTheme.titleMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _isSingleDay
+                                ? _formatDate(widget.startDate)
+                                : '${_formatDate(widget.startDate)} - ${_formatDate(widget.endDate)}',
+                            style: textTheme.headlineMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _isSingleDay
-                          ? _formatDate(widget.startDate)
-                          : '${_formatDate(widget.startDate)} - ${_formatDate(widget.endDate)}',
-                      style: textTheme.headlineMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 16),
+                Card(
+                  elevation: 2,
+                  color: colorScheme.surfaceVariant,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Search Patient',
+                          style: textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: 300,
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Enter Patient ID',
+                              hintStyle: TextStyle(
+                                color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: colorScheme.outline,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: colorScheme.outline.withOpacity(0.5),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: AppTheme.accentColor,
+                                  width: 2,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              suffixIcon: _searchId.isNotEmpty
+                                  ? IconButton(
+                                icon: Icon(
+                                  Icons.clear,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _searchController.clear();
+                                    _searchId = '';
+                                  });
+                                },
+                              )
+                                  : null,
+                            ),
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: colorScheme.onSurface,
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                _searchId = value.trim();
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             Expanded(
@@ -233,6 +328,13 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
                     }
 
                     final sessionDocs = snapshot.data!.docs;
+                    final filteredDocs = _searchId.isEmpty
+                        ? sessionDocs
+                        : sessionDocs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      return data['userID']?.toString().toLowerCase()
+                          .contains(_searchId.toLowerCase()) ?? false;
+                    }).toList();
 
                     return Column(
                       children: [
@@ -264,7 +366,7 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
                                   DataColumn(label: Text('Relaxed')),
                                   DataColumn(label: Text('View')),
                                 ],
-                                rows: sessionDocs.map((doc) {
+                                rows: filteredDocs.map((doc) {
                                   final data = doc.data() as Map<String, dynamic>;
                                   final Timestamp? dateTs = data['date'];
 
@@ -302,7 +404,7 @@ class _GlobalHistoryPageState extends State<GlobalHistoryPage> {
                         SizedBox(
                           width: 180,
                           child: ElevatedButton.icon(
-                            onPressed: () => _exportToCsv(sessionDocs),
+                            onPressed: () => _exportToCsv(filteredDocs),
                             icon: const Icon(Icons.download),
                             label: const Text('Export to CSV'),
                             style: ElevatedButton.styleFrom(
