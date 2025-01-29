@@ -2,13 +2,9 @@
 # Movement Detection and Treatment Monitoring System
 
 ## Project Description
-An integrated IoT and web-based system for monitoring patient movement and treatment sessions. The system consists of two ESP32 devices:
+This project is an IoT-based movement detection and treatment monitoring system designed for Snoezelen therapy rooms in nursing homes. It helps track patient movement and responses during therapy sessions by utilizing two ESP32 microcontrollers.
 
-Main ESP32 – Connected to a motion sensor, a keypad, and an OLED display. This device allows the nurse to input the patient's ID and monitors their activity. It is also responsible for connecting to WiFi and uploading collected data to Firestore.
-
-Slave ESP32 – Connected to another motion sensor and a color sensor. This device monitors the patient’s movement and the colors in the room.
-
-The two ESP32 devices communicate using the ESP-NOW protocol, allowing real-time data transfer. By using two motion sensors, we ensure better coverage of the Snoezelen room, which contains multiple interactive devices for therapy. The collected data is stored both locally and in the cloud, enabling healthcare providers to analyze patient activity and response to different room colors through the web interface.
+The system collects and stores data using Firestore, and healthcare providers can access it via a web application.
 
 ## Group Members
 - Bashar Abu Leil
@@ -75,6 +71,21 @@ The two ESP32 devices communicate using the ESP-NOW protocol, allowing real-time
    - Jumper Wires (×20)
    - Project Box/Enclosure (×2)
    - Mounting Hardware (assorted)
+### System Components
+1. Main ESP32 (Primary Unit)
+This microcontroller serves as the core of the system and is responsible for:
+- Receiving patient ID via a 4×4 keypad.
+- Detecting movement using an LD2410 radar sensor.
+- Displaying session information on an OLED screen.
+- Uploading collected data to Firebase Firestore.
+- Storing backup data on an SD card.
+- Communicating wirelessly with the Slave ESP32 using ESP-NOW.
+
+2. Slave ESP32 (Secondary Unit)
+This unit assists in improving motion detection accuracy and environment monitoring. It is responsible for:
+- Monitoring additional movement using a second LD2410 radar sensor.
+- Detecting light conditions in the room using a TCS3200 color sensor.
+- Sending sensor data to the Main ESP32 via ESP-NOW.
 
 ## Wiring Diagram
 ![WhatsApp Image 2025-01-28 at 16 23 54](https://github.com/user-attachments/assets/cdf26f92-8304-4949-aa22-0a607be3dfe6)
