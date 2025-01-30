@@ -243,7 +243,7 @@ Clicking "View" on any session shows:
 
 
 ## Project Poster
-[IOT Poster.pdf](https://github.com/user-attachments/files/18600568/IOT.Poster.pdf)
+<img width="765" alt="Screenshot 2025-01-30 at 11 53 38" src="https://github.com/user-attachments/assets/131d32a3-f100-458d-992d-e41a3e01c618" />
 
 
 ## Parameters 
