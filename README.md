@@ -243,7 +243,8 @@ Clicking "View" on any session shows:
 
 
 ## Project Poster
-[Insert poster image here]
+[IOT Poster.pdf](https://github.com/user-attachments/files/18600568/IOT.Poster.pdf)
+
 
 ## Parameters 
 ```cpp
